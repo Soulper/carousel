@@ -83,9 +83,11 @@ Partial objects are fine. Anything missing falls back to `defaultBrand` in `lib/
 
 ## Deploying
 
-See `CLAUDE.md` for the full Vercel checklist. In short:
-- **Studio + API on Vercel.** Node 22. Rendering uses `puppeteer-core` + `@sparticuz/chromium`. Locally, point `CHROME_EXECUTABLE_PATH` at your installed Chrome.
-- **Uploads.** Files go from the browser straight to Supabase Storage via signed upload slots, so large photos aren't blocked by Vercel's request size limit.
-- **APP_URL.** Set it to the production domain, and keep that domain free of Vercel Deployment Protection. The app has its own login.
+See `CLAUDE.md` for the full Netlify checklist. In short:
+- **Studio + API on Netlify.** Node 22 (`netlify.toml` and `.nvmrc`). Rendering uses `puppeteer-core` + `@sparticuz/chromium`. Locally, point `CHROME_EXECUTABLE_PATH` at your installed Chrome.
+- **Long jobs.** Rendering and image sourcing take minutes, well past what an ordinary Netlify request is allowed, so they run as background functions in `netlify/functions/`. The API route answers 202 and the browser polls the story row (`runJob` in `lib/client.js`) until the job records its result or its error. Anywhere else — `npm run dev`, Vercel, a VPS — the same routes just do the work inline and return the result directly.
+- **Memory.** Free-plan functions are capped at 1 GB, which is tight for Chromium. If rendering dies with an out-of-memory error, that cap is the reason; a paid plan lifts it.
+- **Uploads.** Files go from the browser straight to Supabase Storage via signed upload slots, so large photos aren't blocked by a request size limit.
+- **APP_URL.** Set it to the production domain, and keep that domain free of Netlify's password protection. Puppeteer loads `/render/:id` from it, and the app has its own login.
 - **Cutout worker.** `workers/cutout_worker.py` runs as a separate always-on Python process (Railway, Fly, a VPS). Without it, the app still works but the depth cover and stickers need cutouts added by hand.
 - **Image rights.** Sourced photos are re-hosted in your storage with their credit. Check each source's press terms before posting.

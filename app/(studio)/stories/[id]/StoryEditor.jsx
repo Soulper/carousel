@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { api, upload } from "@/lib/client";
+import { api, runJob, upload } from "@/lib/client";
 import { useAutosave } from "@/lib/useAutosave";
 import { setPath } from "@/lib/carousel/setPath";
 import { HERO_VARIANTS, Thumb, BrandFonts } from "@/lib/carousel/template";
@@ -150,7 +150,7 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
   };
   const source = (overwrite) => blocked ? blocked(BLOCKED.source) : act("Finding photos… this takes about a minute", async () => {
     await saveNow();
-    const r = await api(`/api/source/${story.id}`, { method: "POST", body: { overwrite } });
+    const r = await runJob(`/api/source/${story.id}`, story.id, { overwrite });
     if (r.message) return r.message;
     const fresh = await api(`/api/stories/${story.id}`);
     setStory((s) => ({ ...s, slides: fresh.slides, status: fresh.status }));
@@ -178,7 +178,7 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
   });
   const render = (variants) => blocked ? blocked(BLOCKED.render) : act("Making the final images… this takes 10–30 seconds", async () => {
     await saveNow();
-    const r = await api(`/api/render/${story.id}`, { method: "POST", body: { variants } });
+    const r = await runJob(`/api/render/${story.id}`, story.id, { variants });
     setRenders((old) => [...r.renders, ...old]);
     set("status", "rendered");
     return `Rendered ${r.renders.reduce((n, x) => n + x.files.length, 0)} slides`;

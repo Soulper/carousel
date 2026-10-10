@@ -1,0 +1,25 @@
+# Netlify deploy config. The Next.js runtime is applied automatically (Netlify
+# sees next in package.json); this file pins what it needs from us.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # @sparticuz/chromium and Next 14 both want a modern Node; the Lambda runtime
+  # follows the build version. .nvmrc says the same thing for other hosts.
+  NODE_VERSION = "22"
+
+[functions]
+  # esbuild bundles our background functions from lib/, which the default zisi
+  # bundler wouldn't do for ESM sources. These packages stay as plain copies:
+  # puppeteer-core and @sparticuz/chromium read files at runtime, sharp is a
+  # native addon.
+  node_bundler = "esbuild"
+  external_node_modules = ["puppeteer-core", "@sparticuz/chromium", "sharp", "@supabase/supabase-js"]
+  # The Chromium build itself is a brotli archive unpacked at launch, so it has
+  # to travel with the function.
+  included_files = ["node_modules/@sparticuz/chromium/bin/**"]
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

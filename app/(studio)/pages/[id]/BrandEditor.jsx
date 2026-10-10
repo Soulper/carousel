@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { api, upload } from "@/lib/client";
+import { api, runJob, upload } from "@/lib/client";
 import { useAutosave } from "@/lib/useAutosave";
 import { setPath } from "@/lib/carousel/setPath";
 import { blankSlides } from "@/lib/carousel/blank";
@@ -75,7 +75,7 @@ export default function BrandEditor({ page, previewStoryId, previewSlides, previ
     if (preview) return setShot({ busy: "", err: BLOCKED.render });
     setShot({ busy: "Making the images… this takes 10–30 seconds", err: "" });
     try {
-      const r = await api(`/api/render/${previewStoryId}`, { method: "POST", body: {} });
+      const r = await runJob(`/api/render/${previewStoryId}`, previewStoryId, {});
       setRenders(r.renders);
       setShot({ busy: "", err: "" });
     } catch (e) { setShot({ busy: "", err: e.message }); }

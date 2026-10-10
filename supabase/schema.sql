@@ -29,6 +29,10 @@ create table if not exists stories (
 -- What the image sourcer found (filled slots, low-res warning, candidate counts)
 alter table stories add column if not exists sourced_at  timestamptz;
 alter table stories add column if not exists source_meta jsonb;
+-- Where a long job got to, when the host can't keep the request open for it
+-- (Netlify): { kind, started_at, finished_at, result } or { ..., error }.
+-- The browser polls this while it waits.
+alter table stories add column if not exists job         jsonb;
 create index if not exists stories_status_idx on stories(status, updated_at desc);
 create index if not exists stories_page_idx on stories(page_id, created_at desc);
 

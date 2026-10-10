@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { api } from "@/lib/client";
+import { api, runJob } from "@/lib/client";
 import { Thumb, BrandFonts, W, H } from "@/lib/carousel/template";
 
 /* Review queue: stories that have been sourced (or are being worked on) but not
@@ -92,7 +92,7 @@ function Card({ story, preview, onChange, labels = {} }) {
     onChange(story.id, null); // leaves the queue
   });
   const render = () => act("Making the images…", async () => {
-    const r = await api(`/api/render/${story.id}`, { method: "POST", body: { variants: [story.hero_variant] } });
+    const r = await runJob(`/api/render/${story.id}`, story.id, { variants: [story.hero_variant] });
     onChange(story.id, { ...story, status: "rendered", renders: [...r.renders, ...(story.renders || [])] });
   });
 
