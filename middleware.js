@@ -16,14 +16,27 @@ const known = (user, pass) =>
   !!process.env.STUDIO_USER && user === process.env.STUDIO_USER && pass === process.env.STUDIO_PASSWORD;
 
 function credentials(req) {
+  const decode = (b64) => {
+    // Middleware runs on the edge runtime, which has atob but no Buffer.
+    // atob gives bytes, so re-read them as UTF-8 by hand for non-ASCII names.
+    const bin = atob(b64);
+    let out = "";
+    for (let i = 0; i < bin.length; i++) {
+      const c = bin.charCodeAt(i);
+      if (c < 0x80) out += String.fromCharCode(c);
+      else if (c < 0x800) out += String.fromCharCode(0xc0 | (c >> 6), 0x80 | (c & 0x3f));
+      else out += String.fromCharCode(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 0x3f), 0x80 | (c & 0x3f));
+    }
+    return out;
+  };
   const cookie = req.cookies.get(COOKIE)?.value;
   if (cookie) {
-    const [user, pass] = Buffer.from(cookie, "base64").toString("utf8").split(":");
+    const [user, pass] = decode(cookie).split(":");
     return { user, pass, via: "cookie" };
   }
   const auth = req.headers.get("authorization");
   if (auth?.startsWith("Basic ")) {
-    const [user, pass] = Buffer.from(auth.slice(6), "utf8").split(":");
+    const [user, pass] = decode(auth.slice(6)).split(":");
     return { user, pass, via: "basic" };
   }
   return null;
