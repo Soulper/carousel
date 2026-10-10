@@ -1,10 +1,10 @@
-# Carousel Studio
+﻿# Carousel Studio
 
 Next.js + Supabase app around the carousel template:
 
 - **Pages**: one per Instagram page. Logo, colours, fonts, max sizes, all stored as one `brand` JSON.
 - **Stories**: slides JSON (copy, images, cutouts, overlays). Your pipeline creates them, or you make them by hand.
-- **Render**: Puppeteer screenshots each slide at 1080×1350 and uploads the JPGs to Supabase Storage.
+- **Render**: Puppeteer screenshots each slide at 1080Ã—1350 and uploads the JPGs to Supabase Storage.
 - **Image sourcing**: `POST /api/source/:id`. Claude searches and reads coverage of the story, the server downloads and filters the photos, then Claude assigns the best one to each slot.
 - **Cutout worker**: Python background removal that fills in subject cutouts and stickers.
 
@@ -18,15 +18,15 @@ Next.js + Supabase app around the carousel template:
 ## Flow
 
 ```
-pipeline ──POST /api/stories──▶ stories (draft)
-                                   │
-     POST /api/source/:id ─────────┘ fills empty image slots + runners-up
-                                   │
-                    cutout worker ─┘ adds cutouts → status 'ready'
-                                   │
-           you, in /stories/:id ───┘ tweak copy/images, pick cover style
-                                   │
-          Render → /api/render/:id ┘ Puppeteer → JPGs in storage → `renders` row, status 'rendered'
+pipeline â”€â”€POST /api/storiesâ”€â”€â–¶ stories (draft)
+                                   â”‚
+     POST /api/source/:id â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ fills empty image slots + runners-up
+                                   â”‚
+                    cutout worker â”€â”˜ adds cutouts â†’ status 'ready'
+                                   â”‚
+           you, in /stories/:id â”€â”€â”€â”˜ tweak copy/images, pick cover style
+                                   â”‚
+          Render â†’ /api/render/:id â”˜ Puppeteer â†’ JPGs in storage â†’ `renders` row, status 'rendered'
 ```
 
 ### Sending a story from your pipeline
@@ -40,11 +40,11 @@ curl -X POST $APP_URL/api/stories \
     "hero_variant": "depth",
     "slides": [
       { "layout": "cover", "headline": "This Chihuahua just joined Mexico'\''s National Guard",
-        "bg": { "src": "https://…/main.jpg", "focal": [50, 30] },
-        "inset": { "src": "https://…/second.jpg" } },
+        "bg": { "src": "https://â€¦/main.jpg", "focal": [50, 30] },
+        "inset": { "src": "https://â€¦/second.jpg" } },
       { "layout": "body", "title": "Meet Comando",
         "body": "Comando is the [[smallest canine member]] of the National Guard.",
-        "bg": { "src": "https://…/helmet.jpg" } }
+        "bg": { "src": "https://â€¦/helmet.jpg" } }
     ]
   }'
 ```
