@@ -1,18 +1,20 @@
 "use client";
-import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import "./login.css";
 
 /* The browser's own Basic-auth box appears once and, if you cancel it, Chrome
    remembers and never offers it again — leaving a dead "Login required" page
    with no way back in. This is a normal form instead: it posts to /api/login,
    which sets a cookie, and it works every time. */
 function LoginForm() {
-  const router = useRouter();
   const next = useSearchParams().get("next") || "/";
   const [user, setUser] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  // Distinguishes "you typed it wrong" from "the server isn't configured",
+  // which look identical otherwise and have very different fixes.
+  const [config, setConfig] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e) => {
@@ -26,7 +28,9 @@ function LoginForm() {
         body: JSON.stringify({ user, password }),
       });
       if (!res.ok) {
-        setError((await res.json().catch(() => ({}))).error || "Login required");
+        const body = await res.json().catch(() => ({}));
+        setConfig(res.status === 503);
+        setError(body.error || "Login required");
         return;
       }
       // Full reload rather than a client nav, so every server component
@@ -64,7 +68,7 @@ function LoginForm() {
       <button className="login-btn" type="submit" disabled={busy}>
         {busy ? "Signing in…" : "Sign in"}
       </button>
-      {error && <p className="login-err">{error}</p>}
+      {error && <p className={`login-err${config ? " config" : ""}`}>{error}</p>}
     </form>
   );
 }

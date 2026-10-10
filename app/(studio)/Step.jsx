@@ -3,14 +3,25 @@
 /* A numbered step in the editor sidebar. Collapsed by default unless `open`,
    with a tick on the circle once `done` is true, so a beginner can see at a
    glance how far along they are. */
+import { useEffect, useRef } from "react";
+
 export default function Step({ n, title, done, open, children }) {
-  /* Uncontrolled on purpose. With `open={open}` React owns the attribute, so it
-     re-asserts the initial value on the next render and slams the panel shut
-     the moment you type in it — which left the fields unreachable and autosave
-     silently doing nothing. Default-open still works; the user is in control
-     afterwards. `defaultOpen` sets it once, on first render only. */
+  const ref = useRef(null);
+
+  /* Uncontrolled on purpose. With `open={open}` React owns the attribute and
+     re-asserts it on every render, so the panel slams itself shut the moment
+     you type in it — the fields become unreachable and autosave silently does
+     nothing. Instead we set the initial state ONCE on mount and never touch it
+     again; after that the user is in control. Empty deps is deliberate: adding
+     `open` back is what caused the bug. */
+  useEffect(() => {
+    const el = ref.current;
+    if (el && open !== undefined) el.open = !!open;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
-    <details className={`step${done ? " done" : ""}`} defaultOpen={open}>
+    <details className={`step${done ? " done" : ""}`} ref={ref}>
       <summary>
         <span className="stepnum">{done ? "✓" : n}</span>
         <span>{title}</span>

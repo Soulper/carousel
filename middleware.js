@@ -12,8 +12,13 @@ import { NextResponse } from "next/server";
    outstanding cookie automatically. */
 const COOKIE = "studio_auth";
 
+/* Trim both sides: a dashboard paste often leaves a trailing newline, and an
+   exact match against that fails as though the password were wrong. */
+const STUDIO_USER = () => (process.env.STUDIO_USER || "").trim();
+const STUDIO_PASSWORD = () => (process.env.STUDIO_PASSWORD || "").trim();
+
 const known = (user, pass) =>
-  !!process.env.STUDIO_USER && user === process.env.STUDIO_USER && pass === process.env.STUDIO_PASSWORD;
+  !!STUDIO_USER() && user === STUDIO_USER() && pass === STUDIO_PASSWORD();
 
 function credentials(req) {
   const decode = (b64) => {

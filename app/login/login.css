@@ -1,0 +1,60 @@
+/* Login page styles. Kept separate from (studio)/studio.css because /login sits
+   outside the (studio) route group, so that stylesheet is never loaded there —
+   which is why the form rendered unstyled. */
+.login-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #121418;
+  color: #e8eaee;
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  background: #1a1d23;
+  border: 1px solid #2a2f39;
+  border-radius: 14px;
+  padding: 32px;
+}
+.login-card h1 { font-size: 24px; margin: 0 0 6px; letter-spacing: -0.01em; }
+.login-sub { color: #9aa1ad; margin: 0 0 22px; font-size: 15px; }
+.login-field { display: grid; gap: 8px; font-size: 14px; font-weight: 600; color: #c9ced8; }
+.login-field input {
+  background: #20242c;
+  color: #e8eaee;
+  border: 1px solid #343a46;
+  border-radius: 10px;
+  padding: 13px 14px;
+  font: inherit;
+  font-size: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.login-field input:focus-visible { outline: 2px solid #3ddc97; outline-offset: 1px; }
+.login-btn {
+  background: #3ddc97;
+  color: #08130e;
+  border: 0;
+  border-radius: 10px;
+  padding: 14px 20px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.login-btn:hover { background: #35c78a; }
+.login-btn:disabled { opacity: .5; cursor: default; }
+.login-err {
+  color: #ff6b6b;
+  font-size: 14px;
+  margin: 0;
+  padding: 10px 12px;
+  background: rgba(255, 107, 107, .1);
+  border: 1px solid rgba(255, 107, 107, .35);
+  border-radius: 8px;
+}
+/* A misconfiguration is not the user's fault, so don't shout about it. */
+.login-err.config { color: #ffb547; background: rgba(255, 181, 71, .1); border-color: rgba(255, 181, 71, .35); }
+.login-hint { color: #9aa1ad; font-size: 13px; margin: 18px 0 0; line-height: 1.5; }
