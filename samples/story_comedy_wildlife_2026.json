@@ -1,0 +1,148 @@
+{
+  "page_id": "<your page uuid>",
+  "title": "Nikon Comedy Wildlife Awards 2026 finalists",
+  "source_url": "https://www.smithsonianmag.com/smart-news/see-the-hilarious-animal-shenanigans-captured-in-photos-and-videos-shortlisted-for-the-2026-nikon-comedy-wildlife-awards-180989600/",
+  "hero_variant": "depth",
+  "status": "draft",
+  "slides": [
+    {
+      "layout": "cover",
+      "headline": "The funniest animal photos of 2026 just dropped",
+      "bg": {
+        "src": "https://tf-cmsv2-smithsonianmag-media.s3.amazonaws.com/filer_public/ee/41/ee4106f4-a7e7-4f9d-99e6-62829f0f224a/kevin_lohman_are_you_kidding_me.jpg",
+        "credit": "© Kevin Lohman / Nikon Comedy Wildlife Awards",
+        "page": "https://www.smithsonianmag.com/smart-news/see-the-hilarious-animal-shenanigans-captured-in-photos-and-videos-shortlisted-for-the-2026-nikon-comedy-wildlife-awards-180989600/",
+        "query": "Squirrel tackling an owl (Kevin Lohman)",
+        "focal": [
+          30,
+          50
+        ]
+      },
+      "inset": {
+        "src": "https://tf-cmsv2-smithsonianmag-media.s3.amazonaws.com/filer_public/c5/a3/c5a3858c-20f8-4e14-b66b-34f802168f96/alexander_hormann_2_choo.jpg",
+        "credit": "© Alexander Hormann / Nikon Comedy Wildlife Awards",
+        "page": "https://www.smithsonianmag.com/smart-news/see-the-hilarious-animal-shenanigans-captured-in-photos-and-videos-shortlisted-for-the-2026-nikon-comedy-wildlife-awards-180989600/",
+        "query": "Moose mid-sneeze (Alexander Hormann)",
+        "focal": [
+          80,
+          50
+        ]
+      }
+    },
+    {
+      "layout": "body",
+      "title": "A record year",
+      "body": "The Nikon Comedy Wildlife Awards got [[over 10,000 entries from 112 countries]]. These are some of this year's finalists.",
+      "bg": {
+        "src": "https://tf-cmsv2-smithsonianmag-media.s3.amazonaws.com/filer_public/63/7e/637e0498-62af-4123-8ced-1596e718c05f/jan-wittmer_angry-bird.jpg",
+        "credit": "© Jan Wittmer / Nikon Comedy Wildlife Awards",
+        "page": "https://www.smithsonianmag.com/smart-news/see-the-hilarious-animal-shenanigans-captured-in-photos-and-videos-shortlisted-for-the-2026-nikon-comedy-wildlife-awards-180989600/",
+        "query": "Angry goldcrest (Jan Wittmer)",
+        "focal": [
+          50,
+          50
+        ],
+        "fit": "above"
+      }
+    },
+    {
+      "layout": "body",
+      "title": "Squirrel vs owl",
+      "body": "In Santa Cruz, a squirrel launched a [[flying tackle at a young owl]]. Then it did it twice more. Both were unharmed.",
+      "bg": {
+        "src": "https://tf-cmsv2-smithsonianmag-media.s3.amazonaws.com/filer_public/ee/41/ee4106f4-a7e7-4f9d-99e6-62829f0f224a/kevin_lohman_are_you_kidding_me.jpg",
+        "credit": "© Kevin Lohman / Nikon Comedy Wildlife Awards",
+        "page": "https://www.smithsonianmag.com/smart-news/see-the-hilarious-animal-shenanigans-captured-in-photos-and-videos-shortlisted-for-the-2026-nikon-comedy-wildlife-awards-180989600/",
+        "query": "Squirrel tackling an owl (Kevin Lohman)",
+        "focal": [
+          52,
+          50
+        ]
+      }
+    },
+    {
+      "layout": "body",
+      "title": "Bless you!",
+      "body": "This moose in Alberta, Canada had [[a runny nose, a sneeze, then a big grin]], all caught in one sequence.",
+      "bg": {
+        "src": "https://tf-cmsv2-smithsonianmag-media.s3.amazonaws.com/filer_public/c5/a3/c5a3858c-20f8-4e14-b66b-34f802168f96/alexander_hormann_2_choo.jpg",
+        "credit": "© Alexander Hormann / Nikon Comedy Wildlife Awards",
+        "page": "https://www.smithsonianmag.com/smart-news/see-the-hilarious-animal-shenanigans-captured-in-photos-and-videos-shortlisted-for-the-2026-nikon-comedy-wildlife-awards-180989600/",
+        "query": "Moose mid-sneeze (Alexander Hormann)",
+        "focal": [
+          64,
+          50
+        ]
+      }
+    },
+    {
+      "layout": "body",
+      "title": "Listen to your mum",
+      "body": "In Kenya's Amboseli, a mother elephant gave her calf a dust bath. [[Straight to the face.]]",
+      "bg": {
+        "src": "https://tf-cmsv2-smithsonianmag-media.s3.amazonaws.com/filer_public/35/cf/35cf1631-1c4e-4e4b-8f3d-76057ee2c0c3/heather_cudworth_lessons.jpg",
+        "credit": "© Heather Cudworth / Nikon Comedy Wildlife Awards",
+        "page": "https://www.smithsonianmag.com/smart-news/see-the-hilarious-animal-shenanigans-captured-in-photos-and-videos-shortlisted-for-the-2026-nikon-comedy-wildlife-awards-180989600/",
+        "query": "Elephant dust bath (Heather Cudworth)",
+        "focal": [
+          12,
+          50
+        ],
+        "fit": "above"
+      }
+    },
+    {
+      "layout": "body",
+      "title": "Hair check",
+      "body": "Three meerkats in Namibia, with one doing a [[last-minute grooming inspection]] before the family photo.",
+      "bg": {
+        "src": "https://tf-cmsv2-smithsonianmag-media.s3.amazonaws.com/filer_public/e8/1b/e81bfd28-b583-469f-955e-6a089cdcbc06/subi_sridharan_hair_check_before_the_family_photo.jpg",
+        "credit": "© Subi Sridharan / Nikon Comedy Wildlife Awards",
+        "page": "https://www.smithsonianmag.com/smart-news/see-the-hilarious-animal-shenanigans-captured-in-photos-and-videos-shortlisted-for-the-2026-nikon-comedy-wildlife-awards-180989600/",
+        "query": "Meerkat hair check (Subi Sridharan)",
+        "focal": [
+          53,
+          50
+        ],
+        "fit": "above"
+      }
+    },
+    {
+      "layout": "body",
+      "title": "Petal power",
+      "body": "A sunbird pulled out of a flower and [[took the petal with it]]. This one came from an under-16 finalist in Cape Town.",
+      "bg": {
+        "src": "https://tf-cmsv2-smithsonianmag-media.s3.amazonaws.com/filer_public/4c/c0/4cc00ac1-0833-4c45-b9dc-43582cafd7b0/u16_phiane_oosthuizen_playing_dress-up.jpg",
+        "credit": "© Phiané Oosthuizen / Nikon Comedy Wildlife Awards",
+        "page": "https://www.smithsonianmag.com/smart-news/see-the-hilarious-animal-shenanigans-captured-in-photos-and-videos-shortlisted-for-the-2026-nikon-comedy-wildlife-awards-180989600/",
+        "query": "Sunbird with petal hat (Phiané Oosthuizen)",
+        "focal": [
+          55,
+          35
+        ]
+      }
+    },
+    {
+      "layout": "body",
+      "title": "Pick a winner",
+      "body": "Winners are revealed on 8 December, then shown free at London's Gallery@Oxo. [[Which one gets your vote?]]",
+      "bg": {
+        "src": "https://tf-cmsv2-smithsonianmag-media.s3.amazonaws.com/filer_public/47/6b/476b3c6b-0ae8-4f9c-b5f1-f0ee69e6f412/eric_boren_if_i_were_just_a_little_bit_faster.jpg",
+        "credit": "© Eric Boren / Nikon Comedy Wildlife Awards",
+        "page": "https://www.smithsonianmag.com/smart-news/see-the-hilarious-animal-shenanigans-captured-in-photos-and-videos-shortlisted-for-the-2026-nikon-comedy-wildlife-awards-180989600/",
+        "query": "Polar bear and gull (Eric Boren)",
+        "focal": [
+          62,
+          50
+        ],
+        "fit": "above"
+      }
+    }
+  ],
+  "caption": "The 2026 Nikon Comedy Wildlife Awards finalists are out, and it's a record year. Winners are announced on 8 December in London, with a free exhibition at Gallery@Oxo from 9 to 13 December. Which one's your winner? 👇\n\n📸 Kevin Lohman, Alexander Hormann, Jan Wittmer, Heather Cudworth, Subi Sridharan, Phiané Oosthuizen, Eric Boren / Nikon Comedy Wildlife Awards\n\n#ComedyWildlife #wildlifephotography",
+  "title_alt_options": [
+    "A squirrel just body-slammed an owl",
+    "The moose sneeze of the year has been caught on camera",
+    "10,000 entries, and these are the funniest"
+  ]
+}
