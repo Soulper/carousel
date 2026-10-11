@@ -5,9 +5,9 @@ import { api, runJob, upload } from "@/lib/client";
 import { useAutosave } from "@/lib/useAutosave";
 import { setPath } from "@/lib/carousel/setPath";
 import { blankSlides } from "@/lib/carousel/blank";
-import { resolveBrand, defaultBrand, HERO_VARIANTS, Thumb, BrandFonts } from "@/lib/carousel/template";
+import { resolveBrand, HERO_VARIANTS, Thumb, BrandFonts } from "@/lib/carousel/template";
 import { BLOCKED } from "@/lib/preview";
-import Step, { More, Field } from "../../Step";
+import { Panel, More, Field } from "../../Controls";
 
 const FONTS_DISPLAY = ["Anton", "Bebas Neue", "Oswald", "Archivo Black", "Bricolage Grotesque", "Big Shoulders Display"];
 const FONTS_BODY = ["Inter Tight", "DM Sans", "Manrope", "Archivo", "Space Grotesk"];
@@ -32,7 +32,7 @@ function FontPicker({ label, path, value, options, pageId, onChange, onBlocked }
           {custom && <option value="__custom">{value.family} (uploaded)</option>}
         </select>
       </Field>
-      <Field label="…or upload your own font file" hint="A .woff2 or .ttf file works best.">
+      <Field label="…or upload your own font file">
         <input type="file" accept=".woff2,.woff,.ttf,.otf" onChange={onFile} />
       </Field>
     </>
@@ -98,27 +98,25 @@ export default function BrandEditor({ page, previewStoryId, previewSlides, previ
     try { set("logo.src", await upload(f, `logos/${page.id}`)); } catch (er) { setState((s) => ({ ...s, err: er.message })); }
   };
 
-  // Colours and fonts always have a value, so "done" has to mean the user has
-  // deliberately set them — tracked by whether they differ from the default.
+  // The logo either has a file or falls back to a coloured letter, which is
+  // how the form knows to show one control and hide the other.
   const hasLogo = !!brand.logo.src;
-  const hasColours = brand.colors.accent !== defaultBrand.colors.accent || brand.mark !== defaultBrand.mark;
   const [cover, ...rest] = previewSlides;
 
   return (
     <div className="cols">
       <BrandFonts brand={brand} />
       <aside className="side">
-        <Step n={1} title="Name your page" done={!!name} open={!name}>
-          <Field label="Page name" hint="The account or series this page posts as.">
+        <Panel label="Page">
+          <Field label="Page name">
             <input value={name} onChange={(e) => setName(e.target.value)} />
           </Field>
-          <Field label="Instagram handle" hint="Optional. Shown in the dashboard.">
+          <Field label="Instagram handle">
             <input value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="@yourpage" />
           </Field>
-        </Step>
+        </Panel>
 
-        <Step n={2} title="Upload your logo" done={hasLogo} open={!!name && !hasLogo}>
-          <p className="stephint">A transparent PNG or SVG works best. Skip this and we'll use a letter instead.</p>
+        <Panel label="Logo">
           <Field label="Logo file">
             <input type="file" accept="image/*" onChange={onLogo} />
           </Field>
@@ -129,11 +127,11 @@ export default function BrandEditor({ page, previewStoryId, previewSlides, previ
             </div>
           )}
           {!hasLogo && (
-            <Field label="Or just a letter" hint="One or two characters, shown in a coloured square.">
+            <Field label="Or just a letter">
               <input value={brand.mark} maxLength={3} onChange={(e) => set("mark", e.target.value)} />
             </Field>
           )}
-          <More title="Advanced: logo placement and size">
+          <More title="Placement and size" value={`${brand.logo.style} · ${brand.logo.position} · ${brand.logo.size}px`}>
             <Field label="Style">
               <select value={brand.logo.style} onChange={(e) => set("logo.style", e.target.value)}>
                 <option value="badge">Square tile</option>
@@ -164,11 +162,11 @@ export default function BrandEditor({ page, previewStoryId, previewSlides, previ
               <input value={brand.name} onChange={(e) => set("name", e.target.value)} />
             </Field>
           </More>
-        </Step>
+        </Panel>
 
-        <Step n={3} title="Pick your colours" done={hasColours} open={hasLogo}>
+        <Panel label="Colours">
           <div className="grid2">
-            <Field label="Highlight colour" hint="Bold headlines and highlights.">
+            <Field label="Highlight colour">
               <input type="color" value={brand.colors.accent} onChange={(e) => set("colors.accent", e.target.value)} />
             </Field>
             <Field label="Text on that colour">
@@ -177,11 +175,11 @@ export default function BrandEditor({ page, previewStoryId, previewSlides, previ
             <Field label="Text on photos">
               <input type="color" value={brand.colors.text} onChange={(e) => set("colors.text", e.target.value)} />
             </Field>
-            <Field label="Shading colour" hint="The dark fade behind text.">
+            <Field label="Shading colour">
               <input type="color" value={brand.colors.shade} onChange={(e) => set("colors.shade", e.target.value)} />
             </Field>
           </div>
-          <More title="Advanced: colour strength">
+          <More title="Colour strength" value={`${Math.round(brand.colors.shadeStrength * 100)}% dark fade`}>
             <Field label={`Highlighted words`}>
               <input type="color" value={brand.colors.highlight || brand.colors.accent} onChange={(e) => set("colors.highlight", e.target.value)} />
             </Field>
@@ -189,13 +187,13 @@ export default function BrandEditor({ page, previewStoryId, previewSlides, previ
               <input type="range" min={40} max={100} value={brand.colors.shadeStrength * 100} onChange={(e) => set("colors.shadeStrength", +e.target.value / 100)} />
             </Field>
           </More>
-        </Step>
+        </Panel>
 
-        <Step n={4} title="Choose your fonts" open={hasColours}>
+        <Panel label="Fonts">
           <FontPicker label="Big headline font" path="fonts.display" value={brand.fonts.display} options={FONTS_DISPLAY} pageId={page.id} onChange={set} onBlocked={blocked} />
           <label className="check"><input type="checkbox" checked={brand.fonts.display.uppercase} onChange={(e) => set("fonts.display.uppercase", e.target.checked)} />Always in capitals</label>
           <FontPicker label="Body text font" path="fonts.body" value={brand.fonts.body} options={FONTS_BODY} pageId={page.id} onChange={set} onBlocked={blocked} />
-          <More title="Advanced: text sizes">
+          <More title="Text sizes" value={`${brand.type.hero.max} / ${brand.type.title.max} / ${brand.type.body.max}px`}>
             <label className="check"><input type="checkbox" checked={brand.divider} onChange={(e) => set("divider", e.target.checked)} />Rule and logo above the cover headline</label>
             <Field label={`Cover headline: ${brand.type.hero.max}px`}>
               <input type="range" min={90} max={220} value={brand.type.hero.max} onChange={(e) => set("type.hero.max", +e.target.value)} />
@@ -210,7 +208,7 @@ export default function BrandEditor({ page, previewStoryId, previewSlides, previ
               <input type="range" min={30} max={110} value={brand.safe} onChange={(e) => set("safe", +e.target.value)} />
             </Field>
           </More>
-        </Step>
+        </Panel>
 
         <div className="donebar">
           <div className="row">

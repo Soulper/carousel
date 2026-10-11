@@ -1,11 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api, runJob, upload } from "@/lib/client";
 import { useAutosave } from "@/lib/useAutosave";
 import { setPath } from "@/lib/carousel/setPath";
 import { HERO_VARIANTS, Thumb, BrandFonts } from "@/lib/carousel/template";
 import { BLOCKED } from "@/lib/preview";
-import Step, { More, Field } from "../../Step";
+import { More, Field } from "../../Controls";
 
 /* Six cover layouts, described the way you'd describe them to someone else.
    "depth" is the default because it's the one that looks best once cutouts run. */
@@ -19,6 +19,10 @@ const STYLES = {
 };
 
 const STATUSES = ["draft", "ready", "rendered", "approved", "posted", "rejected"];
+
+/* Hostname only, for the collapsed summary line on the source-article group.
+   Falls back to null on anything that isn't a parseable URL. */
+const host = (u) => { try { return u ? new URL(u).hostname.replace(/^www\./, "") : null; } catch { return null; } };
 
 // "This photo" — one image slot: paste a link or upload a file.
 function ImageInput({ label, hint, value, folder, onChange, onBlocked }) {
@@ -91,7 +95,7 @@ function RepickButton({ storyId, slotKey, saveNow, onDone, preview }) {
     }
   };
   return (
-    <div>
+    <div className="repick">
       <button className="btn" onClick={repick} disabled={busy}>
         {busy ? "Finding another photo…" : "Find a different photo"}
       </button>
@@ -105,56 +109,72 @@ function SlideForm({ slide, i, storyId, onChange, onBlocked, preview, saveNow, r
   const [raw, setRaw] = useState(null);
   const set = (path, v) => onChange(setPath(slide, path, v));
   const folder = `images/${storyId}`;
-  const n = i + 1;
+  const isCover = slide.layout === "cover";
+
+  /* Discoverable-leaning: the fields people actually use sit at the top level
+     with nothing hidden, and the rare ones (cutout, sticker, raw JSON) share
+     one collapsed "Advanced" group at the bottom. */
   return (
-    <div className="slidebox">
-      <strong>{i === 0 ? "Cover slide" : `Slide ${n}`}</strong>
-      {slide.layout === "cover" ? (
+    <div className="slideform">
+      {isCover ? (
         <>
-          <Field label="The big headline" hint="Keep it short — this is the largest text on the slide.">
-            <textarea style={{ fontFamily: "inherit", fontSize: 15, minHeight: 70 }} value={slide.headline || ""} onChange={(e) => set("headline", e.target.value)} />
+          <span className="label">Headline</span>
+          <Field label="The big line on the cover">
+            <textarea style={{ minHeight: 74 }} value={slide.headline || ""} onChange={(e) => set("headline", e.target.value)} />
           </Field>
-          <ImageInput label="Main photo" hint="The picture behind the headline." value={slide.bg?.src} folder={folder} onBlocked={onBlocked} onChange={(v) => set("bg.src", v)} />
+
+          <span className="label">Photo</span>
+          <ImageInput label="Main photo" value={slide.bg?.src} folder={folder} onBlocked={onBlocked} onChange={(v) => set("bg.src", v)} />
           <Alternates slot={slide.bg} onPick={(a) => set("bg", swapped(slide.bg, a))} />
           <RepickButton storyId={storyId} slotKey={`${i}.bg`} saveNow={saveNow} onDone={refresh} preview={preview} />
-          <ImageInput label="Second photo" hint="Used by some cover layouts, like Circle and Framed photo." value={slide.inset?.src} folder={folder} onBlocked={onBlocked} onChange={(v) => set("inset.src", v)} />
+          <ImageInput label="Second photo" hint="Only the Circle and Framed photo styles use this." value={slide.inset?.src} folder={folder} onBlocked={onBlocked} onChange={(v) => set("inset.src", v)} />
           <Alternates slot={slide.inset} onPick={(a) => set("inset", swapped(slide.inset, a))} />
           {slide.inset?.src && <RepickButton storyId={storyId} slotKey={`${i}.inset`} saveNow={saveNow} onDone={refresh} preview={preview} />}
-          <More title="Advanced: cutout and sticker">
-            <ImageInput label="Cutout photo (filled in automatically)" value={slide.bg?.cutout} folder={folder} onBlocked={onBlocked} onChange={(v) => set("bg.cutout", v)} />
-            <ImageInput label="Sticker image" value={slide.sticker?.src} folder={folder} onBlocked={onBlocked} onChange={(v) => set("sticker.src", v)} />
-          </More>
         </>
       ) : (
         <>
-          <Field label="Title" hint="Two to five words works best.">
+          <span className="label">Words</span>
+          <Field label="Title">
             <input value={slide.title || ""} onChange={(e) => set("title", e.target.value)} />
           </Field>
           <Field label="Body text" hint="Wrap a few words in [[double brackets]] to colour them in.">
-            <textarea style={{ fontFamily: "inherit", fontSize: 15 }} value={slide.body || ""} onChange={(e) => set("body", e.target.value)} />
+            <textarea value={slide.body || ""} onChange={(e) => set("body", e.target.value)} />
           </Field>
+
+          <span className="label">Photo</span>
           <ImageInput label="Photo for this slide" value={slide.bg?.src} folder={folder} onBlocked={onBlocked} onChange={(v) => set("bg.src", v)} />
           <Alternates slot={slide.bg} onPick={(a) => set("bg", swapped(slide.bg, a))} />
           <RepickButton storyId={storyId} slotKey={`${i}.bg`} saveNow={saveNow} onDone={refresh} preview={preview} />
         </>
       )}
+
+      <span className="label">Position</span>
       <Field label="Photo position" hint="Drag if the subject is cut off. This moves the visible part of the photo.">
         <div className="grid2">
           <input type="range" min={0} max={100} value={slide.bg?.focal?.[0] ?? 50} onChange={(e) => set("bg.focal", [+e.target.value, slide.bg?.focal?.[1] ?? 50])} />
           <input type="range" min={0} max={100} value={slide.bg?.focal?.[1] ?? 50} onChange={(e) => set("bg.focal", [slide.bg?.focal?.[0] ?? 50, +e.target.value])} />
         </div>
       </Field>
-      {raw === null ? (
-        <button className="btn" onClick={() => setRaw(JSON.stringify(slide, null, 2))}>Advanced: edit as JSON</button>
-      ) : (
-        <>
-          <textarea value={raw} onChange={(e) => setRaw(e.target.value)} style={{ minHeight: 220 }} />
-          <div className="row">
-            <button className="btn" onClick={() => { try { onChange(JSON.parse(raw)); setRaw(null); } catch { alert("That JSON doesn't parse — check commas and quotes."); } }}>Apply JSON</button>
-            <button className="btn" onClick={() => setRaw(null)}>Cancel</button>
-          </div>
-        </>
-      )}
+
+      <More title="Advanced" value={isCover ? "Cutout, sticker, JSON" : "JSON"}>
+        {isCover && (
+          <>
+            <ImageInput label="Cutout photo (filled in automatically)" value={slide.bg?.cutout} folder={folder} onBlocked={onBlocked} onChange={(v) => set("bg.cutout", v)} />
+            <ImageInput label="Sticker image" value={slide.sticker?.src} folder={folder} onBlocked={onBlocked} onChange={(v) => set("sticker.src", v)} />
+          </>
+        )}
+        {raw === null ? (
+          <button className="btn ghost" onClick={() => setRaw(JSON.stringify(slide, null, 2))}>Edit this slide as JSON</button>
+        ) : (
+          <>
+            <textarea value={raw} onChange={(e) => setRaw(e.target.value)} style={{ minHeight: 200 }} />
+            <div className="row">
+              <button className="btn" onClick={() => { try { onChange(JSON.parse(raw)); setRaw(null); } catch { alert("That JSON doesn't parse — check commas and quotes."); } }}>Apply JSON</button>
+              <button className="btn ghost" onClick={() => setRaw(null)}>Cancel</button>
+            </div>
+          </>
+        )}
+      </More>
     </div>
   );
 }
@@ -163,7 +183,16 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
   const [story, setStory] = useState(initial);
   const [renders, setRenders] = useState(initial.renders || []);
   const [allHeroes, setAllHeroes] = useState(false);
+  const [selected, setSelected] = useState(0);
   const [state, setState] = useState({ busy: "", msg: "", err: "" });
+  const menuRef = useRef(null);
+
+  /* A menu item that starts a long job closes the menu first, so the progress
+     message isn't hidden behind the dropdown the user just clicked. */
+  const closeMenu = (fn) => {
+    if (menuRef.current) menuRef.current.open = false;
+    fn();
+  };
   const page = pages.find((p) => p.id === story.page_id);
   const brand = page?.brand || {};
   const set = (k, v) => setStory((s) => ({ ...s, [k]: v }));
@@ -226,8 +255,16 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
     return `Rendered ${r.renders.reduce((n, x) => n + x.files.length, 0)} slides`;
   });
 
-  const addSlide = () => set("slides", [...story.slides, { layout: "body", title: "New slide", body: "", bg: { src: "", focal: [50, 40] } }]);
-  const removeLast = () => story.slides.length > 1 && set("slides", story.slides.slice(0, -1));
+  const addSlide = () => {
+    set("slides", [...story.slides, { layout: "body", title: "New slide", body: "", bg: { src: "", focal: [50, 40] } }]);
+    setSelected(story.slides.length);
+  };
+  const removeLast = () => {
+    if (story.slides.length < 2) return;
+    set("slides", story.slides.slice(0, -1));
+    // Drop the selection if it was pointing at the slide that just went.
+    setSelected((i) => Math.min(i, story.slides.length - 2));
+  };
 
   // Pull the story back from the database. Sourcing and copy both rewrite the
   // slides server-side, so the editor's local copy is stale the moment they
@@ -238,111 +275,115 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
     return fresh;
   };
 
-  // Progress, so the sidebar shows where you are rather than a wall of inputs.
   const [cover, ...rest] = story.slides;
-  const hasPhotos = story.slides.every((s) => s.bg?.src) && (!cover?.inset || !!cover.inset?.src);
-  const hasWords = !!cover?.headline?.trim() && rest.every((s) => !!s.title?.trim());
   const hasRender = renders.length > 0;
-  const steps = [
-    { n: 1, title: "Give this story a name", done: !!story.title?.trim(), open: !story.title?.trim() },
-    { n: 2, title: "Add the photos", done: hasPhotos, open: story.title?.trim() && !hasPhotos },
-    { n: 3, title: "Write the words", done: hasWords, open: hasPhotos && !hasWords },
-    { n: 4, title: "Make the final images", done: hasRender, open: hasWords && !hasRender },
-  ];
+  const current = story.slides[selected] || cover;
+  const photoCount = story.slides.filter((s) => s.bg?.src).length;
+  const hasWords = !!cover?.headline?.trim() && rest.every((s) => !!s.title?.trim());
+  const progress = [
+    `${photoCount} of ${story.slides.length} photos`,
+    hasWords ? "words written" : "no words yet",
+    hasRender ? "images made" : "not rendered",
+  ].join(" · ");
 
-  const heroes = allHeroes ? HERO_VARIANTS : [story.hero_variant];
+  const savedText = state.busy || state.msg ||
+    (saved === "saving" ? "Saving…" :
+    saved === "dirty" ? "Saving shortly…" :
+    saved === "error" ? "" : "All changes saved");
+
+  /* The canvas either shows the selected slide or, with "compare" ticked, all
+     six cover variants — the two views answer different questions, so they
+     can't share the same grid. */
+  const stage = allHeroes
+    ? <div className="stage-grid">
+        {HERO_VARIANTS.map((v) => (
+          <Thumb key={v} slide={{ ...cover, variant: v }} brand={brand} index={`hero-${v}`} scale={0.3} caption={v} />
+        ))}
+      </div>
+    : <div className="stage">
+        <Thumb
+          slide={selected === 0 ? { ...current, variant: story.hero_variant } : current}
+          brand={brand}
+          index={`stage-${selected}`}
+          scale={0.48}
+          caption={selected === 0 ? "Cover" : `Slide ${selected + 1}`}
+        />
+      </div>;
 
   return (
-    <div className="cols">
+    <div className="editor">
       <BrandFonts brand={brand} />
-      <aside className="side">
-        <Step {...steps[0]}>
-          <Field label="Name (only you see this)" hint="Something like “Dancing Plague of 1518”.">
-            <input value={story.title} onChange={(e) => set("title", e.target.value)} />
-          </Field>
-        </Step>
 
-        <Step {...steps[1]}>
-          <p className="stephint">
-            Easiest way: paste a link to a news article into step 4, then let it find photos. Or add your own by hand.
-          </p>
-          {story.slides.map((s, i) => <SlideForm key={i} slide={s} i={i} storyId={story.id} onBlocked={blocked} onChange={(x) => setSlide(i, x)} preview={preview} saveNow={saveNow} refresh={refresh} />)}
-          <div className="row">
-            <button className="btn" onClick={addSlide}>Add a slide</button>
-            <button className="btn" onClick={removeLast} disabled={story.slides.length < 2}>Remove last slide</button>
-          </div>
-        </Step>
-
-        <Step {...steps[2]}>
-          <p className="stephint">Find photos first so the words get written about what's actually in them.</p>
-          <div className="row">
-            <button className="btn" onClick={() => source(false)} disabled={!!state.busy}>Find missing photos</button>
-            <button className="btn" onClick={() => source(true)} disabled={!!state.busy}>Replace all photos</button>
-          </div>
-          <div className="row">
-            <button className="btn" onClick={() => writeCopy(false)} disabled={!!state.busy}>Write missing words</button>
-            <button className="btn" onClick={() => writeCopy(true)} disabled={!!state.busy}>Rewrite all words</button>
-          </div>
-          <More title="Advanced: source article and page">
-            <Field label="Link to a news article" hint="Given one, it finds photos from that story instead of guessing.">
-              <input value={story.source_url || ""} placeholder="https://…" onChange={(e) => set("source_url", e.target.value)} />
-            </Field>
-            <Field label="Which page">
-              <select value={story.page_id} onChange={(e) => set("page_id", e.target.value)}>
-                {pages.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </Field>
-          </More>
-        </Step>
-
-        <Step {...steps[3]}>
-          <Field label="Cover style" hint={STYLES[story.hero_variant]}>
-            <select value={story.hero_variant} onChange={(e) => set("hero_variant", e.target.value)}>
-              {HERO_VARIANTS.map((v) => <option key={v} value={v}>{v} — {STYLES[v].split("—")[0].trim()}</option>)}
-            </select>
-          </Field>
-          <div className="row">
-            <button className="btn primary" onClick={() => render([story.hero_variant])} disabled={!!state.busy}>Make the images</button>
-            <button className="btn" onClick={() => render(HERO_VARIANTS)} disabled={!!state.busy}>Try every cover style</button>
-          </div>
-          <More title="Advanced: status">
-            <Field label="Status" hint="Where this story is in your process.">
-              <select value={story.status} onChange={(e) => set("status", e.target.value)}>
-                {STATUSES.map((s) => <option key={s}>{s}</option>)}
-              </select>
-            </Field>
-          </More>
-        </Step>
-
-        <div className="donebar">
-          <div className="row">
-            <button className="btn" onClick={save} disabled={!!state.busy}>Save now</button>
-            <span className="note">
-              {state.busy || state.msg ||
-                (saved === "saving" ? "Saving…" :
-                saved === "dirty" ? "Saving shortly…" :
-                saved === "error" ? "" : "All changes saved")}
-            </span>
-          </div>
-          {state.err && <p className="err">{state.err}</p>}
-          {saved === "error" && !state.err && <p className="err">Couldn't save. Check the story still exists.</p>}
+      <nav className="rail" aria-label="Slides">
+        <span className="label">Slides</span>
+        <div className="rail-list">
+          {story.slides.map((s, i) => (
+            <button
+              key={i}
+              className={`rail-item${i === selected ? " on" : ""}`}
+              aria-current={i === selected}
+              onClick={() => setSelected(i)}
+            >
+              <span className="rail-num">{i + 1}</span>
+              <span className="rail-thumb">{s.bg?.src && <img src={s.bg.src} alt="" />}</span>
+            </button>
+          ))}
         </div>
-      </aside>
-
-      <main className="main">
-        <div className="row" style={{ justifyContent: "space-between", marginBottom: 16 }}>
-          <h1 style={{ margin: 0 }}>{story.title || "Untitled story"}</h1>
-          <label className="check"><input type="checkbox" checked={allHeroes} onChange={(e) => setAllHeroes(e.target.checked)} />Compare all cover styles</label>
+        <div className="rail-foot">
+          <button className="btn" onClick={addSlide}>Add a slide</button>
+          <button className="btn ghost" onClick={removeLast} disabled={story.slides.length < 2}>Remove last</button>
         </div>
+      </nav>
 
-        <h2>Preview</h2>
-        <p className="note" style={{ marginTop: -4 }}>
-          This is exactly what you'll get — same size, same layout, drawn live.
-        </p>
-        <div className="thumbs">
-          {heroes.map((v) => <Thumb key={v} slide={{ ...cover, variant: v }} brand={brand} index={`hero-${v}`} scale={0.24} caption={allHeroes ? v : "Cover"} />)}
-          {!allHeroes && rest.map((s, i) => <Thumb key={i} slide={s} brand={brand} index={i + 1} scale={0.24} caption={`Slide ${i + 2}`} />)}
+      <main className="canvas">
+        <div className="canvas-head">
+          <h1 className="display">{story.title || "Untitled story"}</h1>
+          <label className="check">
+            <input type="checkbox" checked={allHeroes} onChange={(e) => setAllHeroes(e.target.checked)} />
+            Compare all cover styles
+          </label>
         </div>
+        <p className="meta">{progress}</p>
+
+        <div className="toolbar">
+          <button className="btn primary" onClick={() => render([story.hero_variant])} disabled={!!state.busy}>
+            {state.busy ? state.busy : "Make the images"}
+          </button>
+          <button className="btn" onClick={() => source(false)} disabled={!!state.busy}>Find photos</button>
+          <button className="btn" onClick={() => writeCopy(false)} disabled={!!state.busy}>Write words</button>
+          <details className="menu" ref={menuRef}>
+            <summary className="btn ghost">More</summary>
+            <div className="menu-body">
+              <button className="btn ghost" onClick={() => closeMenu(() => source(true))} disabled={!!state.busy}>Replace all photos</button>
+              <button className="btn ghost" onClick={() => closeMenu(() => writeCopy(true))} disabled={!!state.busy}>Rewrite all words</button>
+              <button className="btn ghost" onClick={() => closeMenu(() => render(HERO_VARIANTS))} disabled={!!state.busy}>Try every cover style</button>
+            </div>
+          </details>
+        </div>
+        {state.msg && <p className="note">{state.msg}</p>}
+        {state.err && <p className="err">{state.err}</p>}
+        {saved === "error" && !state.err && <p className="err">Couldn't save. Check the story still exists.</p>}
+
+        {stage}
+
+        {!allHeroes && (
+          <>
+            <h2>All slides</h2>
+            <div className="filmstrip">
+              {story.slides.map((s, i) => (
+                <button key={i} className={i === selected ? "on" : ""} onClick={() => setSelected(i)}>
+                  <Thumb
+                    slide={i === 0 ? { ...s, variant: story.hero_variant } : s}
+                    brand={brand}
+                    index={`strip-${i}`}
+                    scale={0.15}
+                    caption={i === 0 ? "Cover" : `Slide ${i + 1}`}
+                  />
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         <h2>Finished images</h2>
         {!hasRender && <p className="note">Nothing made yet. When you're happy with the preview, use “Make the images”.</p>}
@@ -355,6 +396,61 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
           </div>
         ))}
       </main>
+
+      <aside className="inspector">
+        <div className="inspector-head">
+          <Field label="Story name (only you see this)">
+            <input value={story.title} onChange={(e) => set("title", e.target.value)} />
+          </Field>
+          <div className="row">
+            <button className="btn ghost" onClick={save} disabled={!!state.busy}>Save now</button>
+            <span className="note">{savedText}</span>
+          </div>
+          <More title="Page and status" value={`${page?.name || "No page"} · ${story.status}`}>
+            <Field label="Which page">
+              <select value={story.page_id} onChange={(e) => set("page_id", e.target.value)}>
+                {pages.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Status">
+              <select value={story.status} onChange={(e) => set("status", e.target.value)}>
+                {STATUSES.map((s) => <option key={s}>{s}</option>)}
+              </select>
+            </Field>
+          </More>
+          <More title="Cover style" value={STYLES[story.hero_variant].split("—")[0].trim()}>
+            <Field label="Style" hint={STYLES[story.hero_variant]}>
+              <select value={story.hero_variant} onChange={(e) => set("hero_variant", e.target.value)}>
+                {HERO_VARIANTS.map((v) => <option key={v} value={v}>{v} — {STYLES[v].split("—")[0].trim()}</option>)}
+              </select>
+            </Field>
+          </More>
+          <More title="Source article" value={host(story.source_url)}>
+            <Field label="Link to a news article" hint="Given one, it finds photos from that story instead of guessing.">
+              <input value={story.source_url || ""} placeholder="https://…" onChange={(e) => set("source_url", e.target.value)} />
+            </Field>
+          </More>
+        </div>
+
+        <div className="inspector-body">
+          <div className="inspector-title">
+            {current?.layout === "cover" ? "Cover slide" : `Slide ${selected + 1}`}
+          </div>
+          {current && (
+            <SlideForm
+              key={selected}
+              slide={current}
+              i={selected}
+              storyId={story.id}
+              onBlocked={blocked}
+              onChange={(x) => setSlide(selected, x)}
+              preview={preview}
+              saveNow={saveNow}
+              refresh={refresh}
+            />
+          )}
+        </div>
+      </aside>
     </div>
   );
 }

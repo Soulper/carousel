@@ -67,7 +67,7 @@ function LazyThumb({ slide, brand, index, scale, caption }) {
     <figure className="thumb" ref={box}>
       {near
         ? <Thumb slide={slide} brand={brand} index={index} scale={scale} />
-        : <div style={{ width: W * scale, height: H * scale, borderRadius: 10, background: "var(--panel, #1b1f27)" }} />}
+        : <div style={{ width: W * scale, height: H * scale, borderRadius: 4, background: "var(--raised)" }} />}
       {caption && <figcaption>{caption}</figcaption>}
     </figure>
   );
@@ -76,6 +76,10 @@ function LazyThumb({ slide, brand, index, scale, caption }) {
 function Card({ story, preview, onChange, labels = {} }) {
   const c = checks(story);
   const say = (s) => labels[s] || s;
+  /* Exactly one primary action per card, and it changes with the stage: render
+     when the photos are in and nothing has been made yet, approve once there
+     are finished images. The two conditions can't both hold. */
+  const canRender = c.allImages && !c.latest;
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
@@ -108,28 +112,34 @@ function Card({ story, preview, onChange, labels = {} }) {
           <span className="muted">{story.pages?.name}</span>
           <span className={`pill ${story.status}`}>{say(story.status)}</span>
         </div>
-        <h2 className="qtitle">{story.slides[0]?.headline || story.title}</h2>
-        <ul className="qchecks">
+        <h2 className="qtitle">
+          <Link href={`/stories/${story.id}`}>{story.slides[0]?.headline || story.title}</Link>
+        </h2>
+        <ul className="qmeta">
           <li className={c.allImages ? "ok" : "todo"}>
-            {c.allImages ? `All ${c.slots} photos added` : `Photos ${c.images} of ${c.slots} added`}
-            {c.lowRes ? " (some below full resolution)" : ""}
-          </li>
-          <li className={c.cutout === "pending" ? "todo" : "ok"}>
-            {c.cutout === "not needed" ? "Backgrounds removed: not needed for this cover" : `Backgrounds removed: ${c.cutout}`}
-          </li>
-          <li className={c.latest ? "ok" : "todo"}>{c.latest ? `Images made ${ago(c.latest.created_at)}` : "Images not made yet"}</li>
-          <li className="muted">
-            {story.sourced_at ? `Photos found ${ago(story.sourced_at)}` : "Photos not found yet"}
+            {c.allImages ? `All ${c.slots} photos added` : `Photos ${c.images} of ${c.slots}`}
+            {c.lowRes ? " · some below full resolution" : ""}
+            {story.sourced_at ? ` · found ${ago(story.sourced_at)}` : ""}
             {domain(story.source_url) && <> from <a href={story.source_url} target="_blank" rel="noreferrer">{domain(story.source_url)}</a></>}
           </li>
-        </ul>
-        <div className="row">
-          <Link className="btn" href={`/stories/${story.id}`}>Edit</Link>
-          {c.stage !== "approval" && (
-            <button className="btn" onClick={render} disabled={!!busy || !c.allImages} title={c.allImages ? "" : "Fill every image slot first"}>Make images</button>
+          {/* Only relevant for the two cover styles that use a cutout — a
+              permanent "not needed" row was noise on most cards. */}
+          {c.cutout !== "not needed" && (
+            <li className={c.cutout === "pending" ? "todo" : "ok"}>Backgrounds removed: {c.cutout}</li>
           )}
-          <button className="btn primary" onClick={() => setStatus("approved")} disabled={!!busy || !c.latest} title={c.latest ? "" : "Make the images first"}>Approve</button>
-          <button className="btn" onClick={() => setStatus("rejected")} disabled={!!busy}>Reject</button>
+          <li className={c.latest ? "ok" : "todo"}>{c.latest ? `Images made ${ago(c.latest.created_at)}` : "Images not made yet"}</li>
+        </ul>
+        <div className="qactions">
+          {canRender ? (
+            <button className="btn primary" onClick={render} disabled={!!busy}>Make the images</button>
+          ) : c.latest ? (
+            <button className="btn primary" onClick={() => setStatus("approved")} disabled={!!busy}>Approve</button>
+          ) : (
+            /* No photos yet. A disabled "Make the images" here was a dead end,
+               so the primary is the action that actually unblocks the card. */
+            <Link className="btn primary" href={`/stories/${story.id}`}>Add the photos</Link>
+          )}
+          <button className="btn danger" onClick={() => setStatus("rejected")} disabled={!!busy}>Reject</button>
           <button className="btn ghost" onClick={() => setOpen((o) => !o)} aria-expanded={open}>{open ? "Hide slides" : "See all slides"}</button>
         </div>
         {busy && <p className="note">{busy}</p>}

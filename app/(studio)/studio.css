@@ -1,206 +1,527 @@
+/* ---- Design tokens ------------------------------------------------------
+   The accent is deliberately neutral rather than a hue. Users pick their own
+   brand colour and this app's job is to preview it, so a tinted chrome accent
+   fights whatever they chose. White-on-black keeps the artwork the only
+   saturated thing on screen. */
 :root {
-  --bg: #121418; --panel: #1a1d23; --line: #2a2f39; --text: #e8eaee; --muted: #9aa1ad;
-  --field: #20242c; --fieldline: #343a46; --go: #3ddc97; --warn: #ffb547; --bad: #ff6b6b;
+  --bg: #0d0f12;
+  --surface: #14171c;
+  --raised: #1b1f25;
+  --line: #23272e;
+  --line-soft: #1a1e24;
+
+  --text: #e7e9ed;
+  --text-dim: #969daa;
+  --text-mute: #666d78;
+
+  --accent: #f2f3f5;
+  --accent-ink: #0d0f12;
+  --ok: #5ec98a;
+  --warn: #e0a458;
+  --bad: #e06a6a;
+
+  /* One type scale, declared once. Section headings are the label size. */
+  --t-label: 11px;
+  --t-small: 12px;
+  --t-body: 14px;
+  --t-lead: 17px;
+  --t-title: 22px;
+  --t-display: 30px;
+
+  --r-sm: 4px;
+  --r-md: 6px;
+
+  --font: Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
-.studio { background: var(--bg); color: var(--text); min-height: 100vh; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+
+/* ---- Base --------------------------------------------------------------- */
+.studio {
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font: var(--t-body)/1.5 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
 .studio a { color: inherit; }
-.topbar { display: flex; align-items: center; gap: 20px; padding: 18px 32px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 10; }
-.brandmark { font-weight: 700; text-decoration: none; letter-spacing: -0.01em; font-size: 17px; }
-.wrap { padding: 40px; max-width: 1100px; }
-.cols { display: grid; grid-template-columns: 420px minmax(0, 1fr); min-height: calc(100vh - 53px); }
-.side { border-right: 1px solid var(--line); padding: 28px; overflow-y: auto; max-height: calc(100vh - 53px); position: sticky; top: 53px; box-sizing: border-box; }
-.main { padding: 40px 44px; min-width: 0; }
-h1 { font-size: 20px; margin: 0 0 18px; }
-h2 { font-size: 15px; margin: 0 0 12px; }
-.group { display: grid; gap: 16px; padding-bottom: 24px; margin-bottom: 24px; border-bottom: 1px solid var(--line); }
-.group:last-child { border-bottom: 0; }
-.field { display: grid; gap: 6px; font-weight: 500; font-size: 13px; color: #c9ced8; }
-.check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #c9ced8; }
-.studio input:not([type=checkbox]):not([type=range]):not([type=color]):not([type=file]), .studio select, .studio textarea {
-  background: var(--field); color: var(--text); border: 1px solid var(--fieldline); border-radius: 8px; padding: 8px 10px; font: inherit; width: 100%; box-sizing: border-box;
-}
-.studio textarea { min-height: 90px; resize: vertical; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
-.studio input[type=color] { width: 100%; height: 34px; border: 1px solid var(--fieldline); border-radius: 8px; background: var(--field); padding: 2px; }
-.studio input:focus-visible, .studio select:focus-visible, .studio textarea:focus-visible, .btn:focus-visible { outline: 2px solid var(--go); outline-offset: 1px; }
-.btn { background: var(--field); color: var(--text); border: 1px solid var(--fieldline); border-radius: 8px; padding: 8px 14px; font: inherit; font-weight: 600; cursor: pointer; }
-.btn.primary { background: var(--go); color: #08130e; border-color: var(--go); }
-.btn:disabled { opacity: .5; cursor: default; }
-.row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.thumbs { display: flex; gap: 28px; flex-wrap: wrap; margin-bottom: 48px; }
-.thumb { margin: 0; }
-.thumb figcaption { color: var(--muted); font-size: 14px; margin-top: 12px; }
-.list { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 40px; }
-.list a, .list .item { display: flex; justify-content: space-between; gap: 16px; padding: 18px 22px; border-bottom: 1px solid var(--line); text-decoration: none; font-size: 16px; }
-.list a:last-child { border-bottom: 0; }
-.list a:hover { background: var(--panel); }
-.muted { color: var(--muted); }
-.pill { font-size: 13px; padding: 4px 12px; border-radius: 99px; border: 1px solid var(--fieldline); color: var(--muted); font-weight: 600; white-space: nowrap; }
-.pill.rendered, .pill.approved, .pill.posted { color: var(--go); border-color: var(--go); }
-.pill.rejected { color: var(--bad); border-color: var(--bad); }
-.note { font-size: 13px; color: var(--muted); }
-.err { color: var(--bad); font-size: 13px; }
-.slidebox { border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 16px; margin-bottom: 16px; background: var(--bg); }
-.slidebox > strong { font-size: 15px; color: var(--text); }
-.renders img { width: 230px; border-radius: 8px; display: block; }
-.group > *, .slidebox > * { min-width: 0; }
-.studio input[type=file] { max-width: 100%; font-size: 12px; color: var(--muted); }
-.alt { padding: 0; border: 1px solid var(--fieldline); border-radius: 8px; overflow: hidden; cursor: pointer; background: none; width: 56px; height: 70px; }
-.alt img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.alt:focus-visible { outline: 2px solid var(--go); outline-offset: 1px; }
-.nav { display: flex; gap: 22px; margin-left: 14px; }
-.nav a { text-decoration: none; color: var(--muted); font-weight: 600; font-size: 16px; }
-.nav a:hover { color: var(--text); }
-.tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-.tabs button { background: none; border: 1px solid transparent; color: var(--muted); padding: 10px 16px; border-radius: 10px; font: inherit; font-weight: 600; font-size: 16px; cursor: pointer; }
-.tabs button.on { color: var(--text); border-color: var(--fieldline); background: var(--field); }
-.tabs .count { font-weight: 500; opacity: .7; margin-left: 4px; }
-.qgrid { display: grid; gap: 24px; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); }
-.qcard { display: grid; grid-template-columns: 260px 1fr; gap: 22px; border: 1px solid var(--line); border-radius: 14px; padding: 20px; background: var(--panel); }
-.qcover { width: 260px; height: 325px; border-radius: 10px; overflow: hidden; background: #000; }
-.qcover img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.qcover .thumb figcaption { display: none; }
-.qbody { display: grid; gap: 14px; align-content: start; min-width: 0; }
-.qtitle { font-size: 19px; margin: 0; line-height: 1.35; }
-.qchecks { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; font-size: 15px; line-height: 1.5; }
-.qchecks li::before { content: "•"; margin-right: 10px; color: var(--muted); }
-.qchecks li.ok::before { content: "✓"; color: var(--go); }
-.qchecks li.todo::before { content: "○"; color: var(--warn); }
-.qslides { grid-column: 1 / -1; display: flex; gap: 14px; overflow-x: auto; padding-top: 8px; }
-.qslides img { height: 240px; border-radius: 8px; display: block; }
-.qslides .thumb figcaption { display: none; }
-.btn.ghost { background: none; border-color: transparent; color: var(--muted); }
-.pill.ready { color: var(--warn); border-color: var(--warn); }
-@media (max-width: 560px) {
-  .qgrid { grid-template-columns: 1fr; }
-  .qcard { grid-template-columns: 1fr; }
-  .qcover { width: 100%; height: auto; aspect-ratio: 4 / 5; }
-}
-a.btn { text-decoration: none; display: inline-flex; align-items: center; }
-.banner { display: grid; gap: 8px; border: 1px solid var(--warn); background: rgba(255, 181, 71, .08); border-radius: 10px; padding: 14px 16px; margin-bottom: 28px; max-width: 720px; }
-.banner code { font-size: 12px; background: var(--field); border: 1px solid var(--fieldline); border-radius: 6px; padding: 1px 6px; margin-left: 6px; }
-.banner a { color: var(--warn); }
 
-/* ---- Beginner-friendly patterns ----------------------------------------
-   Bigger hit targets, plain-language step markers, hints that read as
-   instructions rather than jargon, and <details> for the fiddly options. */
+h1 { font: 600 var(--t-title)/1.25 var(--font); letter-spacing: -0.015em; margin: 0 0 16px; }
+h2 {
+  font: 600 var(--t-label)/1.4 var(--font);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-mute);
+  margin: 0 0 12px;
+}
+.display { font-size: var(--t-display); letter-spacing: -0.02em; }
 
-.studio { font-size: 16px; line-height: 1.55; }
-.btn { padding: 13px 20px; font-size: 16px; border-radius: 10px; }
-.btn.primary { font-weight: 700; }
+/* Section heading used inside inspectors and panels. */
+.label {
+  font: 600 var(--t-label)/1.4 var(--font);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-mute);
+}
+.meta { font-size: var(--t-small); color: var(--text-mute); line-height: 1.5; }
+.note { font-size: var(--t-small); color: var(--text-dim); }
+.err { font-size: var(--t-small); color: var(--bad); }
+
+/* ---- Chrome ------------------------------------------------------------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 28px;
+  height: 56px;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+}
+.brandmark {
+  font: 600 var(--t-lead)/1 var(--font);
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+.nav { display: flex; gap: 4px; margin-left: 8px; }
+.nav a {
+  text-decoration: none;
+  color: var(--text-mute);
+  font-size: var(--t-body);
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+}
+.nav a:hover { color: var(--text); background: var(--raised); }
+
+.wrap { padding: 40px 32px; max-width: 1100px; }
+
+/* ---- Two-column editor (brand editor) --------------------------------- */
+.cols { display: grid; grid-template-columns: 380px minmax(0, 1fr); min-height: calc(100vh - 56px); }
+.side {
+  border-right: 1px solid var(--line);
+  padding: 28px 24px;
+  overflow-y: auto;
+  max-height: calc(100vh - 56px);
+  position: sticky;
+  top: 56px;
+  box-sizing: border-box;
+}
+.main { padding: 36px 40px; min-width: 0; }
+
+/* ---- Panels -------------------------------------------------------------
+   Editors group their controls with a label and a hairline, not a boxed
+   accordion. Less chrome, same structure. */
+.panel { padding-bottom: 28px; margin-bottom: 28px; border-bottom: 1px solid var(--line-soft); }
+.panel:last-child { border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }
+.panelbody { display: grid; gap: 18px; margin-top: 16px; }
+.panel > .label { display: block; margin-bottom: 2px; }
+
+/* ---- Controls ----------------------------------------------------------- */
+.field { display: grid; gap: 7px; font-size: var(--t-body); font-weight: 500; color: var(--text-dim); }
+.check { display: flex; gap: 9px; align-items: flex-start; font-size: var(--t-body); color: var(--text-dim); }
+.check input { margin: 2px 0 0; accent-color: var(--accent); flex: none; }
+
 .studio input:not([type=checkbox]):not([type=range]):not([type=color]):not([type=file]),
-.studio select, .studio textarea { padding: 13px 14px; font-size: 16px; border-radius: 10px; }
-.studio textarea { min-height: 110px; font-size: 15px; }
-.studio input[type=color] { height: 48px; border-radius: 10px; }
-.studio input[type=range] { height: 34px; }
-.field { font-size: 15px; gap: 10px; font-weight: 600; }
-.check { font-size: 15px; gap: 10px; }
-.note { font-size: 15px; line-height: 1.55; }
-.err { font-size: 15px; }
-h1 { font-size: 30px; margin: 0 0 24px; line-height: 1.25; }
-h2 { font-size: 21px; margin: 0 0 16px; }
-
-/* A numbered step in the editor sidebar. */
-.step { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 14px; background: var(--panel); overflow: hidden; }
-.step > summary {
-  list-style: none; cursor: pointer; padding: 18px 20px; display: flex; align-items: center; gap: 14px;
-  font-weight: 700; font-size: 16px; user-select: none;
+.studio select,
+.studio textarea {
+  background: var(--raised);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  font: var(--t-body)/1.5 var(--font);
+  width: 100%;
+  box-sizing: border-box;
 }
-.step > summary::-webkit-details-marker { display: none; }
-.step > summary:hover { background: var(--field); }
-.step[open] > summary { border-bottom: 1px solid var(--line); }
-.stepnum {
-  flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
-  background: var(--field); border: 1px solid var(--fieldline); font-size: 15px; font-weight: 700;
+.studio textarea { min-height: 88px; resize: vertical; font-family: inherit; }
+.studio input::placeholder, .studio textarea::placeholder { color: var(--text-mute); }
+.studio input[type=color] {
+  width: 100%;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--raised);
+  padding: 3px;
 }
-.step.done .stepnum { background: var(--go); border-color: var(--go); color: #08130e; }
-.stepbody { padding: 20px; display: grid; gap: 18px; }
-.step-arrow { margin-left: auto; color: var(--muted); transition: transform .15s; }
-.step[open] .step-arrow { transform: rotate(90deg); }
-.stephint { font-size: 14px; color: var(--muted); margin: -4px 0 0; line-height: 1.55; font-weight: 400; }
+.studio input[type=range] { width: 100%; height: 24px; accent-color: var(--accent); }
+.studio input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; }
 
-/* Short plain-language explanation under a control. */
-.hint { font-size: 14px; color: var(--muted); margin-top: 2px; line-height: 1.5; font-weight: 400; }
+/* File inputs render as a labelled box rather than the default native widget. */
+.studio input[type=file] {
+  max-width: 100%;
+  font-size: var(--t-small);
+  color: var(--text-mute);
+  background: var(--raised);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.studio input[type=file]::file-selector-button {
+  font: 500 var(--t-small)/1 var(--font);
+  color: var(--text);
+  background: var(--line);
+  border: 0;
+  border-radius: var(--r-sm);
+  padding: 7px 11px;
+  margin-right: 12px;
+  cursor: pointer;
+}
 
-/* Collapsible for settings most people never touch. */
-details.more { border: 1px dashed var(--fieldline); border-radius: 10px; padding: 0; }
+.btn {
+  background: var(--raised);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 11px 16px;
+  min-height: 40px;
+  font: 500 var(--t-body)/1.2 var(--font);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) { background: var(--line); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover:not(:disabled) { background: #fff; }
+.btn.ghost { background: none; border-color: transparent; color: var(--text-mute); }
+.btn.ghost:hover:not(:disabled) { background: var(--raised); color: var(--text); }
+.btn.danger { background: none; border-color: transparent; color: var(--bad); }
+.btn:disabled { opacity: .45; cursor: default; }
+
+.studio input:focus-visible,
+.studio select:focus-visible,
+.studio textarea:focus-visible,
+.btn:focus-visible,
+.alt:focus-visible,
+.tabs button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ---- Hint --------------------------------------------------------------
+   Only four survive in the whole app: the repick cost, the [[bracket]]
+   syntax, the focal-position drag, and what source_url changes. */
+.hint { font-size: var(--t-small); color: var(--text-mute); line-height: 1.5; }
+
+/* Repick stacks its button above the cost/time note instead of running the
+   note alongside the button. */
+.repick { display: grid; gap: 7px; justify-items: start; }
+.repick .hint { max-width: 44ch; }
+
+/* ---- Collapsible --------------------------------------------------------
+   Hairline instead of a dashed box, with a value summary on the summary line
+   so a collapsed group is readable rather than opaque. */
+details.more { border-top: 1px solid var(--line-soft); padding-top: 14px; }
 details.more > summary {
-  list-style: none; cursor: pointer; padding: 14px 16px; font-weight: 600; font-size: 15px; color: var(--muted); user-select: none;
+  list-style: none;
+  cursor: pointer;
+  font-size: var(--t-body);
+  font-weight: 500;
+  color: var(--text-mute);
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 details.more > summary::-webkit-details-marker { display: none; }
-details.more > summary::before { content: "▸ "; }
-details.more[open] > summary::before { content: "▾ "; }
+details.more > summary::before { content: "›"; font-size: 18px; line-height: 1; color: var(--text-mute); transition: transform .15s; display: inline-block; }
+details.more[open] > summary::before { transform: rotate(90deg); }
 details.more > summary:hover { color: var(--text); }
-details.more .morebody { padding: 6px 16px 20px; display: grid; gap: 18px; }
+details.more > .summary-value { color: var(--text-mute); font-weight: 400; font-size: var(--t-small); }
+details.more .morebody { display: grid; gap: 18px; padding: 16px 0 4px; }
 
-/* Big primary action at the bottom of the editor. */
-.donebar {
-  position: sticky; bottom: 0; background: var(--bg); border-top: 1px solid var(--line);
-  padding: 18px 24px; display: grid; gap: 12px; margin: 24px -28px -28px; z-index: 5;
+/* ---- Story editor: rail / canvas / inspector ----------------------------
+   The sidebar used to hold a full form for every slide in one 420px column,
+   so a nine-slide story was nine stacked forms and the preview sat somewhere
+   else entirely. Now the rail is navigation, the canvas is the preview, and
+   the inspector holds one slide at a time. Each column scrolls on its own. */
+.editor {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr) 400px;
+  min-height: calc(100vh - 56px);
 }
-.donebar .row { gap: 14px; }
-
-/* Getting-started panel on the dashboard. */
-.steps-guide { display: grid; gap: 22px; max-width: 820px; margin-bottom: 48px; }
-.guide-step { display: grid; grid-template-columns: 42px 1fr; gap: 18px; align-items: start; }
-.guide-step .n {
-  width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center;
-  background: var(--field); border: 1px solid var(--fieldline); font-weight: 700; font-size: 17px;
+.rail, .canvas, .inspector {
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
+  position: sticky;
+  top: 56px;
+  box-sizing: border-box;
 }
-.guide-step h3 { margin: 4px 0 6px; font-size: 17px; }
-.guide-step p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.6; }
-.guide-step a.btn { margin-top: 12px; }
+.rail { border-right: 1px solid var(--line); padding: 18px 12px; }
+.canvas { padding: 28px 32px; }
+.inspector { border-left: 1px solid var(--line); }
 
-/* Status chip you can actually read at a glance. */
-.chip { font-size: 13px; padding: 3px 10px; border-radius: 99px; border: 1px solid var(--fieldline); color: var(--muted); font-weight: 600; }
-.chip.ok { color: var(--go); border-color: var(--go); }
-.chip.warn { color: var(--warn); border-color: var(--warn); }
-.chip.bad { color: var(--bad); border-color: var(--bad); }
+/* ---- Rail --------------------------------------------------------------- */
+.rail > .label { display: block; padding: 0 4px 12px; }
+.rail-list { display: grid; gap: 4px; }
+.rail-item {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 7px 7px 5px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-mute);
+  font: inherit;
+}
+.rail-item:hover { background: var(--surface); color: var(--text); }
+.rail-item.on { background: var(--raised); border-color: var(--line); color: var(--text); box-shadow: inset 2px 0 0 var(--accent); }
+.rail-num { font-size: var(--t-small); font-variant-numeric: tabular-nums; text-align: center; }
+.rail-thumb {
+  display: block;
+  /* Fixed height rather than 4:5 so the rail stays a navigation strip — at
+     full aspect each tile was ~220px tall and only four slides fit on screen. */
+  height: 112px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--raised);
+  border: 1px solid var(--line);
+}
+.rail-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rail-foot { display: grid; gap: 6px; margin-top: 16px; padding: 0 4px; }
 
-/* Empty states that say what to do next. */
-.empty { border: 1px dashed var(--fieldline); border-radius: 14px; padding: 40px; text-align: center; color: var(--muted); font-size: 15px; line-height: 1.6; }
-.empty strong { display: block; color: var(--text); font-size: 19px; margin-bottom: 8px; }
+/* ---- Canvas ------------------------------------------------------------- */
+.canvas-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.canvas-head h1 { margin-bottom: 4px; }
+.stage { display: flex; justify-content: center; margin: 22px 0 36px; }
+.stage-grid { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin: 22px 0 36px; }
+.filmstrip { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 36px; }
+.filmstrip .thumb { flex: none; }
+.filmstrip button { background: none; border: 1px solid transparent; border-radius: var(--r-sm); padding: 4px; cursor: pointer; display: block; }
+.filmstrip button:hover { border-color: var(--line); }
+.filmstrip button.on { border-color: var(--accent); }
 
+/* ---- Toolbar ------------------------------------------------------------ */
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 16px 0 4px; }
+.menu { position: relative; }
+.menu > summary { list-style: none; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu-body {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  display: grid;
+  min-width: 200px;
+  padding: 5px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .5);
+}
+.menu-body .btn { justify-content: flex-start; border-color: transparent; background: none; }
+.menu-body .btn:hover:not(:disabled) { background: var(--line); }
+
+/* ---- Inspector ---------------------------------------------------------- */
+.inspector-head { padding: 18px 20px 20px; border-bottom: 1px solid var(--line); background: var(--bg); }
+.inspector-head .field { margin-bottom: 12px; }
+.inspector-head .row { justify-content: space-between; }
+.inspector-body { padding: 20px; display: grid; gap: 14px; }
+.inspector-title { font: 600 var(--t-lead)/1.3 var(--font); letter-spacing: -0.01em; }
+.slideform { display: grid; gap: 14px; }
+.slideform > .label { margin-top: 8px; }
+.slideform > .label:first-child { margin-top: 0; }
+
+/* ---- Slide blocks ------------------------------------------------------- */
+.slidebox {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 18px;
+  display: grid;
+  gap: 16px;
+  margin-bottom: 14px;
+  background: var(--surface);
+}
+.slidebox > * { min-width: 0; }
+.slidebox > strong { font-size: var(--t-body); font-weight: 600; }
+
+.alt {
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  cursor: pointer;
+  background: none;
+  width: 52px;
+  height: 65px;
+}
+.alt img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ---- Thumbnails --------------------------------------------------------- */
+.thumbs { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 40px; }
+.thumb { margin: 0; }
+.thumb figcaption { color: var(--text-mute); font-size: var(--t-small); margin-top: 10px; }
+.renders img { width: 210px; border-radius: var(--r-sm); display: block; }
+
+/* ---- Lists -------------------------------------------------------------- */
+.list { border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; margin-bottom: 36px; }
+.list a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--line-soft);
+  text-decoration: none;
+  font-size: var(--t-lead);
+}
+.list a:last-child { border-bottom: 0; }
+.list a:hover { background: var(--surface); }
+.muted { color: var(--text-mute); font-size: var(--t-body); }
+
+.pill {
+  font-size: var(--t-small);
+  padding: 3px 9px;
+  border-radius: 99px;
+  border: 1px solid var(--line);
+  color: var(--text-mute);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pill.rendered, .pill.approved, .pill.posted { color: var(--ok); border-color: var(--ok); }
+.pill.rejected { color: var(--bad); border-color: var(--bad); }
+.pill.ready { color: var(--warn); border-color: var(--warn); }
+
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tabs button {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-mute);
+  padding: 9px 13px;
+  border-radius: var(--r-sm);
+  font: 500 var(--t-body)/1.2 var(--font);
+  cursor: pointer;
+}
+.tabs button:hover { color: var(--text); }
+.tabs button.on { color: var(--text); background: var(--raised); border-color: var(--line); }
+.tabs .count { font-weight: 400; opacity: .7; margin-left: 4px; }
+
+/* ---- Empty states -------------------------------------------------------
+   Say what is missing and offer the action inline, rather than describing the
+   whole workflow in a separate panel. */
+.empty {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  padding: 32px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: var(--t-body);
+  line-height: 1.6;
+}
+.empty strong { display: block; color: var(--text); font-size: var(--t-lead); font-weight: 600; margin-bottom: 6px; }
+
+/* ---- Preview-mode banner ------------------------------------------------ */
+.banner {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--warn);
+  background: rgba(224, 164, 88, .07);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  margin-bottom: 28px;
+  max-width: 720px;
+  font-size: var(--t-body);
+}
+.banner code {
+  font-size: var(--t-small);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 1px 6px;
+  margin-left: 6px;
+}
+.banner a { color: var(--warn); }
+
+/* ---- Review queue ------------------------------------------------------- */
+.qgrid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); }
+.qcard {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 18px;
+  background: var(--surface);
+}
+.qcover { width: 240px; height: 300px; border-radius: var(--r-sm); overflow: hidden; background: var(--raised); }
+.qcover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.qcover .thumb figcaption { display: none; }
+.qbody { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.qtitle {
+  font: 600 var(--t-lead)/1.35 var(--font);
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--text);
+  margin: 0;
+}
+/* The headline is the way into the editor, so it carries the link rather than
+   spending a button slot on "Edit". */
+.qtitle a { text-decoration: none; }
+.qtitle a:hover { text-decoration: underline; }
+.qmeta { list-style: none; padding: 0; margin: 0; display: grid; gap: 5px; font-size: var(--t-small); line-height: 1.5; color: var(--text-dim); }
+.qmeta li::before { content: "•"; margin-right: 8px; color: var(--text-mute); }
+.qmeta li.ok::before { content: "✓"; color: var(--ok); }
+.qmeta li.todo::before { content: "○"; color: var(--warn); }
+.qmeta li.muted { color: var(--text-mute); }
+.qactions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.qslides { grid-column: 1 / -1; display: flex; gap: 12px; overflow-x: auto; padding-top: 6px; }
+.qslides img { height: 220px; border-radius: var(--r-sm); display: block; }
+.qslides .thumb figcaption { display: none; }
+
+/* ---- Responsive --------------------------------------------------------- */
+@media (max-width: 1280px) {
+  .editor { grid-template-columns: 172px minmax(0, 1fr) 348px; }
+  .canvas { padding: 24px; }
+}
 @media (max-width: 1100px) {
-  .cols { grid-template-columns: 360px minmax(0, 1fr); }
+  .cols { grid-template-columns: 330px minmax(0, 1fr); }
   .main { padding: 28px; }
+}
+@media (max-width: 980px) {
+  /* Below this the three columns stop earning their keep: the rail becomes a
+     horizontal strip of thumbnails across the top. */
+  .editor { grid-template-columns: minmax(0, 1fr); }
+  .rail, .canvas, .inspector { position: static; max-height: none; border-right: 0; border-left: 0; }
+  .rail { border-bottom: 1px solid var(--line); padding: 12px 16px; }
+  .rail > .label { display: none; }
+  .rail-list { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; }
+  .rail-item { width: 96px; flex: none; grid-template-columns: 1fr; gap: 5px; }
+  .rail-num { text-align: left; padding-left: 2px; }
+  .rail-foot { display: flex; margin-top: 10px; padding: 0; }
+  .inspector { border-top: 1px solid var(--line); }
+  .filmstrip { flex-wrap: wrap; overflow-x: visible; }
+  .menu-body { left: auto; right: 0; }
 }
 @media (max-width: 860px) {
   .cols { grid-template-columns: 1fr; }
   .side { position: static; max-height: none; border-right: 0; border-bottom: 1px solid var(--line); }
   .wrap { padding: 24px; }
+  .qgrid { grid-template-columns: 1fr; }
   .qcard { grid-template-columns: 1fr; }
   .qcover { width: 100%; height: auto; aspect-ratio: 4 / 5; }
 }
-/* ---- Login page (app/login, outside the studio layout) ---- */
-.login-wrap {
-  min-height: 100vh; display: grid; place-items: center; padding: 24px;
-  background: #121418; color: #e8eaee;
-  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
-}
-.login-card {
-  width: 100%; max-width: 380px; background: #1a1d23; border: 1px solid #2a2f39;
-  border-radius: 14px; padding: 32px;
-}
-.login-card h1 { font-size: 24px; margin: 0 0 6px; }
-.login-sub { color: #9aa1ad; margin: 0; font-size: 15px; }
-.login-field { display: grid; gap: 8px; font-size: 14px; font-weight: 600; color: #c9ced8; }
-.login-field input {
-  background: #20242c; color: #e8eaee; border: 1px solid #343a46; border-radius: 10px;
-  padding: 13px 14px; font: inherit; font-size: 16px; width: 100%; box-sizing: border-box;
-}
-.login-field input:focus-visible { outline: 2px solid #3ddc97; outline-offset: 1px; }
-.login-btn {
-  background: #3ddc97; color: #08130e; border: 0; border-radius: 10px;
-  padding: 14px 20px; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
-}
-.login-btn:disabled { opacity: .5; cursor: default; }
-.login-err { color: #ff6b6b; font-size: 14px; margin: 0; }
-
 @media (max-width: 560px) {
-  .step > summary { padding: 14px; gap: 12px; }
-  .stepbody { padding: 14px; }
-  .main { padding: 20px 16px; }
-  .thumbs { gap: 16px; }
-  .renders img { width: 150px; }
+  .topbar { gap: 12px; padding: 0 16px; }
+  .brandmark { font-size: 15px; white-space: nowrap; }
+  .nav { margin-left: auto; }
+  .nav a { padding: 6px 8px; }
+  .main, .canvas { padding: 20px 16px; }
+  .canvas-head { flex-direction: column; gap: 8px; }
+  .thumbs { gap: 14px; }
+  .renders img { width: 140px; }
+  .grid2 { grid-template-columns: 1fr; }
 }

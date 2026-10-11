@@ -1,60 +1,66 @@
 /* Login page styles. Kept separate from (studio)/studio.css because /login sits
-   outside the (studio) route group, so that stylesheet is never loaded there —
-   which is why the form rendered unstyled. */
+   outside the (studio) route group, so that stylesheet is never loaded here —
+   which is why the form once rendered unstyled. The values below mirror the
+   tokens in studio.css; update both together. */
 .login-wrap {
   min-height: 100vh;
   display: grid;
   place-items: center;
   padding: 24px;
-  background: #121418;
-  color: #e8eaee;
-  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: #0d0f12;
+  color: #e7e9ed;
+  font: 14px/1.5 Inter, "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 .login-card {
   width: 100%;
-  max-width: 380px;
-  background: #1a1d23;
-  border: 1px solid #2a2f39;
-  border-radius: 14px;
-  padding: 32px;
+  max-width: 360px;
+  background: #14171c;
+  border: 1px solid #23272e;
+  border-radius: 6px;
+  padding: 28px;
 }
-.login-card h1 { font-size: 24px; margin: 0 0 6px; letter-spacing: -0.01em; }
-.login-sub { color: #9aa1ad; margin: 0 0 22px; font-size: 15px; }
-.login-field { display: grid; gap: 8px; font-size: 14px; font-weight: 600; color: #c9ced8; }
+.login-card h1 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0 0 6px;
+}
+.login-sub { color: #666d78; margin: 0 0 22px; font-size: 13px; }
+.login-field { display: grid; gap: 7px; font-size: 14px; font-weight: 500; color: #969daa; }
 .login-field input {
-  background: #20242c;
-  color: #e8eaee;
-  border: 1px solid #343a46;
-  border-radius: 10px;
-  padding: 13px 14px;
+  background: #1b1f25;
+  color: #e7e9ed;
+  border: 1px solid #23272e;
+  border-radius: 4px;
+  padding: 10px 12px;
   font: inherit;
-  font-size: 16px;
   width: 100%;
   box-sizing: border-box;
 }
-.login-field input:focus-visible { outline: 2px solid #3ddc97; outline-offset: 1px; }
+.login-field input:focus-visible { outline: 2px solid #f2f3f5; outline-offset: 1px; }
 .login-btn {
-  background: #3ddc97;
-  color: #08130e;
+  background: #f2f3f5;
+  color: #0d0f12;
   border: 0;
-  border-radius: 10px;
-  padding: 14px 20px;
-  font: inherit;
-  font-size: 16px;
-  font-weight: 700;
+  border-radius: 4px;
+  padding: 12px 16px;
+  min-height: 40px;
+  font: 600 14px/1.2 inherit;
+  width: 100%;
   cursor: pointer;
 }
-.login-btn:hover { background: #35c78a; }
-.login-btn:disabled { opacity: .5; cursor: default; }
+.login-btn:hover:not(:disabled) { background: #fff; }
+.login-btn:disabled { opacity: .45; cursor: default; }
 .login-err {
-  color: #ff6b6b;
-  font-size: 14px;
+  color: #e06a6a;
+  font-size: 12px;
   margin: 0;
   padding: 10px 12px;
-  background: rgba(255, 107, 107, .1);
-  border: 1px solid rgba(255, 107, 107, .35);
-  border-radius: 8px;
+  background: rgba(224, 106, 106, .08);
+  border: 1px solid rgba(224, 106, 106, .3);
+  border-radius: 4px;
 }
 /* A misconfiguration is not the user's fault, so don't shout about it. */
-.login-err.config { color: #ffb547; background: rgba(255, 181, 71, .1); border-color: rgba(255, 181, 71, .35); }
-.login-hint { color: #9aa1ad; font-size: 13px; margin: 18px 0 0; line-height: 1.5; }
+.login-err.config { color: #e0a458; background: rgba(224, 164, 88, .08); border-color: rgba(224, 164, 88, .3); }
+.login-hint { color: #666d78; font-size: 12px; margin: 16px 0 0; line-height: 1.5; }
