@@ -60,7 +60,48 @@ function swapped(slot, alt) {
   return { ...rest, src: alt.src, credit: alt.credit || "", page: alt.page || "", alternates: [...current, ...others] };
 }
 
-function SlideForm({ slide, i, storyId, onChange, onBlocked }) {
+/* "Find a different photo" — searches again for this one slot and leaves every
+   other slide alone. Costs a full sourcing run (search + downloads + vision),
+   so the button says so up front and the result line reports what it spent. */
+function RepickButton({ storyId, slotKey, saveNow, onDone, preview }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  if (preview) return null;
+  const repick = async () => {
+    setBusy(true);
+    setMsg("");
+    try {
+      // Persist first: the search reads the story from the database, so unsaved
+      // edits would be invisible to it and the photo could clash with text that
+      // isn't there yet.
+      await saveNow();
+      const r = await api(`/api/source/${storyId}`, { method: "POST", body: { slots: [slotKey] } });
+      if (r.message) { setMsg(r.message); return; }
+      const picked = r.filled?.[0];
+      if (r.unchanged?.includes(slotKey)) {
+        setMsg("It picked the same photo again — there isn't another one that fits this slide.");
+      } else {
+        setMsg(`${picked?.why || "Swapped in a different photo."}${r.cost ? ` Cost: ${r.cost.cents.toFixed(1)}¢.` : ""}`);
+      }
+      onDone();
+    } catch (e) {
+      setMsg(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div>
+      <button className="btn" onClick={repick} disabled={busy}>
+        {busy ? "Finding another photo…" : "Find a different photo"}
+      </button>
+      <span className="hint">Searches again for this slide only. About a minute, and costs a few cents.</span>
+      {msg && <span className="hint">{msg}</span>}
+    </div>
+  );
+}
+
+function SlideForm({ slide, i, storyId, onChange, onBlocked, preview, saveNow, refresh }) {
   const [raw, setRaw] = useState(null);
   const set = (path, v) => onChange(setPath(slide, path, v));
   const folder = `images/${storyId}`;
@@ -75,8 +116,10 @@ function SlideForm({ slide, i, storyId, onChange, onBlocked }) {
           </Field>
           <ImageInput label="Main photo" hint="The picture behind the headline." value={slide.bg?.src} folder={folder} onBlocked={onBlocked} onChange={(v) => set("bg.src", v)} />
           <Alternates slot={slide.bg} onPick={(a) => set("bg", swapped(slide.bg, a))} />
+          <RepickButton storyId={storyId} slotKey={`${i}.bg`} saveNow={saveNow} onDone={refresh} preview={preview} />
           <ImageInput label="Second photo" hint="Used by some cover layouts, like Circle and Framed photo." value={slide.inset?.src} folder={folder} onBlocked={onBlocked} onChange={(v) => set("inset.src", v)} />
           <Alternates slot={slide.inset} onPick={(a) => set("inset", swapped(slide.inset, a))} />
+          {slide.inset?.src && <RepickButton storyId={storyId} slotKey={`${i}.inset`} saveNow={saveNow} onDone={refresh} preview={preview} />}
           <More title="Advanced: cutout and sticker">
             <ImageInput label="Cutout photo (filled in automatically)" value={slide.bg?.cutout} folder={folder} onBlocked={onBlocked} onChange={(v) => set("bg.cutout", v)} />
             <ImageInput label="Sticker image" value={slide.sticker?.src} folder={folder} onBlocked={onBlocked} onChange={(v) => set("sticker.src", v)} />
@@ -92,6 +135,7 @@ function SlideForm({ slide, i, storyId, onChange, onBlocked }) {
           </Field>
           <ImageInput label="Photo for this slide" value={slide.bg?.src} folder={folder} onBlocked={onBlocked} onChange={(v) => set("bg.src", v)} />
           <Alternates slot={slide.bg} onPick={(a) => set("bg", swapped(slide.bg, a))} />
+          <RepickButton storyId={storyId} slotKey={`${i}.bg`} saveNow={saveNow} onDone={refresh} preview={preview} />
         </>
       )}
       <Field label="Photo position" hint="Drag if the subject is cut off. This moves the visible part of the photo.">
@@ -152,8 +196,7 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
     await saveNow();
     const r = await runJob(`/api/source/${story.id}`, story.id, { overwrite });
     if (r.message) return r.message;
-    const fresh = await api(`/api/stories/${story.id}`);
-    setStory((s) => ({ ...s, slides: fresh.slides, status: fresh.status }));
+    await refresh();
     const parts = [`Filled ${r.filled.length} of ${r.slots} slots from ${r.candidates} candidates (${r.kept} usable, ${r.distinct} different photo${r.distinct === 1 ? "" : "s"}).`];
     if (r.unfilled?.length) {
       parts.push(`${r.unfilled.length} slide${r.unfilled.length === 1 ? "" : "s"} couldn't be matched to a photo and kept what ${r.unfilled.length === 1 ? "it" : "they"} had.`);
@@ -171,8 +214,7 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
     await saveNow();
     const r = await api(`/api/copy/${story.id}`, { method: "POST", body: { overwrite } });
     if (r.message) return r.message;
-    const fresh = await api(`/api/stories/${story.id}`);
-    setStory((s) => ({ ...s, slides: fresh.slides }));
+    await refresh();
     return `Wrote text for ${r.written} slide${r.written === 1 ? "" : "s"}.` +
       (r.cost ? ` Cost: ${r.cost.cents.toFixed(1)}¢.` : "");
   });
@@ -186,6 +228,15 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
 
   const addSlide = () => set("slides", [...story.slides, { layout: "body", title: "New slide", body: "", bg: { src: "", focal: [50, 40] } }]);
   const removeLast = () => story.slides.length > 1 && set("slides", story.slides.slice(0, -1));
+
+  // Pull the story back from the database. Sourcing and copy both rewrite the
+  // slides server-side, so the editor's local copy is stale the moment they
+  // finish. Status is left alone — those routes no longer touch it.
+  const refresh = async () => {
+    const fresh = await api(`/api/stories/${story.id}`);
+    setStory((s) => ({ ...s, slides: fresh.slides, source_url: fresh.source_url }));
+    return fresh;
+  };
 
   // Progress, so the sidebar shows where you are rather than a wall of inputs.
   const [cover, ...rest] = story.slides;
@@ -215,7 +266,7 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
           <p className="stephint">
             Easiest way: paste a link to a news article into step 4, then let it find photos. Or add your own by hand.
           </p>
-          {story.slides.map((s, i) => <SlideForm key={i} slide={s} i={i} storyId={story.id} onBlocked={blocked} onChange={(x) => setSlide(i, x)} />)}
+          {story.slides.map((s, i) => <SlideForm key={i} slide={s} i={i} storyId={story.id} onBlocked={blocked} onChange={(x) => setSlide(i, x)} preview={preview} saveNow={saveNow} refresh={refresh} />)}
           <div className="row">
             <button className="btn" onClick={addSlide}>Add a slide</button>
             <button className="btn" onClick={removeLast} disabled={story.slides.length < 2}>Remove last slide</button>

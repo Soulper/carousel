@@ -15,14 +15,14 @@ export default async (req: Request) => {
     return Response.json({ error: "Not allowed" }, { status: 401 });
   }
 
-  const { id, overwrite } = await req.json().catch(() => ({}));
+  const { id, overwrite, only } = await req.json().catch(() => ({}));
   if (!id) return Response.json({ error: "No story id" }, { status: 400 });
 
   const started_at = new Date().toISOString();
   if (!isConfigured()) return Response.json({ error: "Supabase is not configured" }, { status: 503 });
 
   try {
-    const result = await sourceStory(id, { overwrite: !!overwrite });
+    const result = await sourceStory(id, { overwrite: !!overwrite, only: Array.isArray(only) ? only : null });
     await setJob(id, { kind: "source", started_at, finished_at: new Date().toISOString(), result });
     return Response.json(result);
   } catch (e) {
