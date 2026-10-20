@@ -1,0 +1,49 @@
+# The autopilot's heartbeat. Every 15 minutes it asks the app to do the next
+# unit of work: generate a topic, source, copy, render, or post whatever is
+# due. One step per call — see app/api/cron/tick/route.js for the ladder.
+#
+# Secrets needed in repo settings: APP_URL (https://your-deployment.vercel.app)
+# and PIPELINE_API_KEY (the same value as the Vercel env var).
+name: autopilot tick
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+    - cron: "0 3 1 * *" # monthly token refresh (see refresh-token job)
+  workflow_dispatch: {} # manual "run one tick" button
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: tick
+        run: |
+          code=$(curl -sS -o /tmp/tick.json -w "%{http_code}" -X POST \
+            "$APP_URL/api/cron/tick" \
+            -H "x-api-key: $PIPELINE_API_KEY" \
+            -H "content-type: application/json" \
+            -d '{}' || true)
+          echo "tick answered $code: $(cat /tmp/tick.json)"
+          # 401/403/500+ are real breakage; anything else (including errors the
+          # app recorded on the story row) is a normal tick with bad luck.
+          if [ "$code" -ge 500 ] || [ "$code" -eq 401 ] || [ "$code" -eq 403 ]; then
+            exit 1
+          fi
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          PIPELINE_API_KEY: ${{ secrets.PIPELINE_API_KEY }}
+
+  refresh-token:
+    # IG access tokens lapse after ~60 days. On the 1st of every month, ask the
+    # app to exchange the current one for a fresh long-lived token. The new
+    # token comes back in the run log — update the IG_ACCESS_TOKEN env var with
+    # it. (fb_exchange_token needs FB_APP_ID/FB_APP_SECRET set on Vercel.)
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 0 1 * *'
+    steps:
+      - name: refresh
+        run: |
+          curl -sS -X GET "$APP_URL/api/ig/refresh" -H "x-api-key: $PIPELINE_API_KEY"
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          PIPELINE_API_KEY: ${{ secrets.PIPELINE_API_KEY }}

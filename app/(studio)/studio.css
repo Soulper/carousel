@@ -482,6 +482,74 @@ details.more .morebody { display: grid; gap: 18px; padding: 16px 0 4px; }
 .qslides img { height: 220px; border-radius: var(--r-sm); display: block; }
 .qslides .thumb figcaption { display: none; }
 
+/* ---- Cockpit ------------------------------------------------------------ */
+.ck-gauges {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.ck-gauge {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  padding: 14px 16px 12px;
+  display: grid;
+  gap: 4px;
+}
+.ck-gauge-big { font: 600 var(--t-display)/1 var(--font); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.ck-gauge.bad .ck-gauge-big { color: var(--bad); }
+.ck-actions { margin: 4px 0 8px; }
+.ck-leds { gap: 16px; margin-bottom: 22px; }
+.ck-led { display: inline-flex; align-items: center; gap: 7px; font-size: var(--t-small); color: var(--text-dim); }
+.led {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--text-mute);
+  display: inline-block; flex: none;
+}
+.led.ok { background: var(--ok); box-shadow: 0 0 6px rgba(94, 201, 138, .5); }
+.led.warn { background: var(--warn); }
+.led.bad { background: var(--bad); }
+
+.ck-timeline h2 { margin-bottom: 10px; }
+.ck-slot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: var(--t-body);
+}
+.ck-slot:last-child { border-bottom: 0; }
+.ck-time {
+  font: 600 var(--t-lead)/1 var(--font);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+  width: 52px; flex: none;
+}
+.ck-slot.ok .ck-time { color: var(--ok); }
+.ck-slot.bad .ck-time { color: var(--bad); }
+.ck-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-decoration: none;
+}
+.ck-title:not(.muted):hover { text-decoration: underline; }
+
+.ck-failures h2 { margin-bottom: 10px; }
+.ck-failrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.ck-failrow:last-child { border-bottom: 0; }
+.ck-failtext { display: grid; gap: 3px; min-width: 0; }
+.ck-failtext strong { font-size: var(--t-body); font-weight: 600; }
+
 /* ---- Responsive --------------------------------------------------------- */
 @media (max-width: 1280px) {
   .editor { grid-template-columns: 172px minmax(0, 1fr) 348px; }

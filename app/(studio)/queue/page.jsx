@@ -4,9 +4,10 @@ import Queue from "./Queue";
 
 export const dynamic = "force-dynamic";
 
-// Everything sourced or in progress that nobody has approved or rejected yet
-const PENDING = ["draft", "ready", "rendered"];
-const LIMIT = 40;
+// The board: work in progress, plus recently posted and failed stories so
+// the tabs are honest about what the autopilot did and what it dropped.
+const PENDING = ["draft", "ready", "rendered", "approved"];
+const LIMIT = 60;
 
 // Plain words for the statuses the DB stores, so the UI doesn't say "draft".
 const LABEL = {
@@ -27,19 +28,20 @@ export default async function QueuePage() {
     };
     return <Queue initial={[demo]} labels={LABEL} preview />;
   }
-  const { data, error } = await db()
-    .from("stories")
-    .select("id,title,status,hero_variant,slides,source_url,sourced_at,source_meta,updated_at,pages(id,name,brand)")
-    .in("status", PENDING)
-    .order("updated_at", { ascending: false })
-    .limit(LIMIT);
-  if (error) throw error;
+  const select = "id,title,status,hero_variant,slides,source_url,sourced_at,source_meta,scheduled_at,posted_at,job,updated_at,pages(id,name,brand)";
+  const since = new Date(Date.now() - 7 * 864e5).toISOString();
+  const [{ data: pending, error }, { data: done, error: doneErr }] = await Promise.all([
+    db().from("stories").select(select).in("status", PENDING).order("updated_at", { ascending: false }).limit(LIMIT),
+    db().from("stories").select(select).in("status", ["posted", "rejected"]).gte("updated_at", since).order("updated_at", { ascending: false }).limit(20),
+  ]);
+  if (error || doneErr) throw error || doneErr;
+  const rows = [...(pending || []), ...(done || [])];
 
   // Only the newest render per story is ever shown, and each one carries a
   // file list, so embedding every render of every story bloats the payload.
   // One windowed query over just this page's stories instead.
-  const ids = data.map((s) => s.id);
-  const byStory = new Map(data.map((s) => [s.id, { ...s, renders: [] }]));
+  const ids = rows.map((s) => s.id);
+  const byStory = new Map(rows.map((s) => [s.id, { ...s, renders: [] }]));
   if (ids.length) {
     const { data: renders } = await db()
       .from("renders")

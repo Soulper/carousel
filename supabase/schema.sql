@@ -4,11 +4,14 @@ create extension if not exists pgcrypto;
 
 -- One row per Instagram page. `brand` holds the whole brand config
 -- (logo, colours, fonts, type sizes) — the same object the template reads.
+-- `config` holds the autopilot settings: topics/sources, posting window and
+-- slots, hashtags, tone, and the on/off switch the tick loop reads.
 create table if not exists pages (
   id          uuid primary key default gen_random_uuid(),
   name        text not null,
   handle      text,
   brand       jsonb not null default '{}'::jsonb,
+  config      jsonb not null default '{}'::jsonb,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -33,8 +36,14 @@ alter table stories add column if not exists source_meta jsonb;
 -- (Netlify): { kind, started_at, finished_at, result } or { ..., error }.
 -- The browser polls this while it waits.
 alter table stories add column if not exists job         jsonb;
+-- Autopilot: when this carousel is due to go out, when it went out, and the
+-- Graph API media id of the published post.
+alter table stories add column if not exists scheduled_at timestamptz;
+alter table stories add column if not exists posted_at    timestamptz;
+alter table stories add column if not exists ig_media_id  text;
 create index if not exists stories_status_idx on stories(status, updated_at desc);
 create index if not exists stories_page_idx on stories(page_id, created_at desc);
+create index if not exists stories_schedule_idx on stories(scheduled_at) where scheduled_at is not null;
 
 -- Each render run; `files` = [{ slide, url }]
 create table if not exists renders (

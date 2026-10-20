@@ -31,6 +31,9 @@ Rendering takes 10–30 s and sourcing 1–2 minutes. Netlify's ordinary functio
 - `runJob()` in `lib/client.js` sees `queued` and polls `/api/stories/:id` every 3 s until the result or the error lands, then returns the same shape the inline path returns. Callers don't branch on it.
 - Anywhere else (`npm run dev`, Vercel, a VPS) `enqueue()` returns false and the route does the work inline, unchanged.
 
+## Autopilot (12 carousels/day)
+The app runs itself. `POST /api/cron/tick` (api-key guarded) does ONE unit of work per call: post a due story → copy → source → render → generate a new topic when under quota. GitHub Actions (`.github/workflows/tick.yml`) hits it every 15 minutes with `APP_URL` + `PIPELINE_API_KEY` repo secrets. Pages carry `config` jsonb: `autopilot`, `posts_per_day`, `slots` (UTC), `topics`, `sources`, `banned`, `hashtags`, `tone`. Posting is `lib/instagram.js` (Graph API carousel; needs IG_USER_ID/IG_ACCESS_TOKEN, Business/Creator account linked to a FB Page). New env vars: IG_USER_ID, IG_ACCESS_TOKEN, FB_APP_ID, FB_APP_SECRET. The cockpit dashboard (app/(studio)/page.jsx) shows gauges, today's slots, and a failure board with retry. Keep lib/topic.js, lib/copy.js, lib/instagram.js free of Next imports and on relative imports, same rule as lib/render.js.
+
 Keep `lib/render.js` and `lib/source.js` free of Next imports, and use relative imports inside them: the background functions are bundled by esbuild, which doesn't know the `@/` alias.
 
 ## Memory

@@ -19,6 +19,14 @@ function checks(story) {
   const needsCutout = story.hero_variant === "depth" || story.hero_variant === "sticker";
   const cutoutReady = story.hero_variant === "sticker" ? !!cover?.sticker?.src : !!cover?.bg?.cutout;
   const latest = story.renders?.[0];
+  const failed = !!story.job?.error && story.status !== "posted";
+  const stage = failed
+    ? "failed"
+    : story.status === "posted"
+      ? "posted"
+      : !withImg || withImg < slots.length
+        ? "images"
+        : story.status === "rendered" && latest ? "approval" : "render";
   return {
     images: `${withImg}/${slots.length}`,
     slots: slots.length,
@@ -26,15 +34,18 @@ function checks(story) {
     cutout: needsCutout ? (cutoutReady ? "ready" : "pending") : "not needed",
     lowRes: !!story.source_meta?.lowRes,
     latest,
-    stage: !withImg || withImg < slots.length ? "images" : story.status === "rendered" && latest ? "approval" : "render",
+    failed,
+    stage,
   };
 }
 
 const TABS = [
   ["all", "Everything"],
   ["images", "Needs photos"],
-  ["render", "Ready to make"],
-  ["approval", "Waiting on you"],
+  ["render", "In factory"],
+  ["approval", "Ready to fly"],
+  ["posted", "Posted"],
+  ["failed", "Failed"],
 ];
 
 const ago = (iso) => {
@@ -128,6 +139,11 @@ function Card({ story, preview, onChange, labels = {} }) {
             <li className={c.cutout === "pending" ? "todo" : "ok"}>Backgrounds removed: {c.cutout}</li>
           )}
           <li className={c.latest ? "ok" : "todo"}>{c.latest ? `Images made ${ago(c.latest.created_at)}` : "Images not made yet"}</li>
+          {story.job?.error && story.status !== "posted" && <li className="todo">Last step failed: {story.job.error}</li>}
+          {story.scheduled_at && story.status !== "posted" && (
+            <li>Flies {new Date(story.scheduled_at).toISOString().slice(11, 16)} UTC</li>
+          )}
+          {story.status === "posted" && story.posted_at && <li>Posted {ago(story.posted_at)}</li>}
         </ul>
         <div className="qactions">
           {canRender ? (
@@ -162,7 +178,7 @@ export default function Queue({ initial, preview = false, labels = {} }) {
   const [stories, setStories] = useState(initial);
   const [tab, setTab] = useState("all");
   const counts = useMemo(() => {
-    const n = { all: stories.length, images: 0, render: 0, approval: 0 };
+    const n = { all: stories.length, images: 0, render: 0, approval: 0, posted: 0, failed: 0 };
     stories.forEach((s) => n[checks(s).stage]++);
     return n;
   }, [stories]);

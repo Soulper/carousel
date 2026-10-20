@@ -13,8 +13,8 @@ export async function GET(_req, { params }) {
 
 export async function PUT(req, { params }) {
   return run(async () => {
-    const { name, handle, brand } = await req.json();
-    const patch = Object.fromEntries(Object.entries({ name, handle, brand }).filter(([, v]) => v !== undefined));
+    const { name, handle, brand, config } = await req.json();
+    const patch = Object.fromEntries(Object.entries({ name, handle, brand, config }).filter(([, v]) => v !== undefined));
     const { data, error } = await db().from("pages").update(patch).eq("id", params.id).select().single();
     if (error) throw error;
     return ok(data);
