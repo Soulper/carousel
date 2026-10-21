@@ -144,6 +144,7 @@ function Card({ story, preview, onChange, labels = {} }) {
             <li>Flies {new Date(story.scheduled_at).toISOString().slice(11, 16)} UTC</li>
           )}
           {story.status === "posted" && story.posted_at && <li>Posted {ago(story.posted_at)}</li>}
+          {story.caption && <li className="muted">Caption written — open the story to read it</li>}
         </ul>
         <div className="qactions">
           {canRender ? (
@@ -164,7 +165,7 @@ function Card({ story, preview, onChange, labels = {} }) {
       {open && (
         <div className="qslides">
           {c.latest
-            ? c.latest.files.map((f) => <a key={f.url} href={f.url} target="_blank" rel="noreferrer"><img src={f.url} alt={`Slide ${f.slide}`} /></a>)
+            ? c.latest.files.map((f) => <a key={f.url} href={f.url} target="_blank" rel="noreferrer" download><img src={f.url} alt={`Slide ${f.slide}`} /></a>)
             : story.slides.map((s, i) => (
                 <LazyThumb key={i} slide={i === 0 ? cover : s} brand={brand} index={`q-${story.id}-${i}`} scale={0.14} />
               ))}

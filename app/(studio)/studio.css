@@ -537,6 +537,22 @@ details.more .morebody { display: grid; gap: 18px; padding: 16px 0 4px; }
 }
 .ck-title:not(.muted):hover { text-decoration: underline; }
 
+.ck-ready h2 { margin-bottom: 10px; }
+.ck-readyrow {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.ck-readyrow:last-child { border-bottom: 0; }
+.ck-readytext { display: grid; gap: 4px; min-width: 0; }
+.ck-readytext .ck-title { white-space: normal; }
+.ck-readyslides { flex-wrap: nowrap; overflow-x: auto; max-width: 60vw; }
+.ck-readyslides img { height: 74px; border-radius: 3px; display: block; }
+.ck-readyslides a:hover img { outline: 1px solid var(--accent); }
+
 .ck-failures h2 { margin-bottom: 10px; }
 .ck-failrow {
   display: flex;

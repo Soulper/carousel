@@ -5,7 +5,7 @@ import { generateStory, quotaRemaining } from "@/lib/topic";
 import { writeCopy } from "@/lib/copy";
 import { sourceStory } from "@/lib/source";
 import { renderStory } from "@/lib/render";
-import { publishCarousel, igConfigured } from "@/lib/instagram";
+import { publish, canPublish } from "@/lib/publish";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +21,9 @@ export const maxDuration = 300;
    needed on Vercel.
 
    The pipeline, oldest due first:
-     1. post      a rendered story whose scheduled_at has passed
+     1. send      a rendered story whose scheduled_at has passed — publishes
+                  through lib/publish.js, or marks it ready to post by hand
+                  when no publishing account is connected
      2. copy      a story whose slides have no words yet
      3. source    a story whose photo slots are empty
      4. render    a sourced story with no rendered images
@@ -43,13 +45,13 @@ export async function POST(req) {
       s.job?.started_at && !s.job.result && !s.job.error &&
       Date.now() - new Date(s.job.started_at).getTime() < LOCK_MS;
 
-    // ---- 1. due posts first, so slot times are honoured
-    if (igConfigured()) {
-      const due = await candidates(["rendered"]);
-      for (const s of due) {
-        if (locked(s) || !dueNow(s)) continue;
-        return await withJob(s, "post", () => post(s));
-      }
+    // ---- 1. due posts first, so slot times are honoured. This runs whether
+    // or not an account is connected: with none, the story is marked ready to
+    // post instead of piling up.
+    const due = await candidates(["rendered"]);
+    for (const s of due) {
+      if (locked(s) || !dueNow(s)) continue;
+      return await withJob(s, "post", () => post(s));
     }
 
     // ---- 2-4. the factory: one step on the oldest story that needs it
@@ -92,7 +94,7 @@ export async function GET() {
       configured: {
         supabase: true,
         anthropic: !!process.env.ANTHROPIC_API_KEY,
-        instagram: igConfigured(),
+        publish: canPublish(),
       },
       pending: pending.length,
       awaiting_post: rendered.filter(dueNow).length,
@@ -165,9 +167,17 @@ async function post(s) {
     await db().from("stories").update({ status: "rejected" }).eq("id", s.id);
     throw new Error("No caption written; not posting.");
   }
-  const mediaId = await publishCarousel({ files, caption });
-  await db().from("stories").update({ status: "posted", posted_at: new Date().toISOString(), ig_media_id: mediaId, job: null }).eq("id", s.id);
-  return { step: "post", media_id: mediaId };
+
+  const result = await publish({ files, caption });
+  if (result.mode !== "instagram") {
+    // No publishing strategy connected. The carousel is finished; park it as
+    // "approved" so it shows up in the cockpit ready to post by hand, and stop
+    // touching it — the post step only picks up status 'rendered'.
+    await db().from("stories").update({ status: "approved", job: null }).eq("id", s.id);
+    return { step: "ready", mode: "manual" };
+  }
+  await db().from("stories").update({ status: "posted", posted_at: new Date().toISOString(), ig_media_id: result.id, job: null }).eq("id", s.id);
+  return { step: "post", media_id: result.id };
 }
 
 const dueNow = (s) => s.scheduled_at && new Date(s.scheduled_at) <= new Date();

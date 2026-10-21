@@ -26,13 +26,14 @@ export default function Cockpit({ pages, failures = [], preview }) {
     act(storyId ? "Retrying…" : "Running…", async () => {
       const r = await api("/api/cron/tick", { method: "POST", body: { story_id: storyId || undefined } });
       if (r?.idle) return { message: "Nothing to do — every story is waiting on its slot." };
-      const step = r?.step || (r?.result?.step ?? "a step");
+      const step = r?.result?.step || r?.step || "a step";
       const what = {
         generate: "Generated a new story from today's topics.",
         copy: "Wrote the words for a story.",
         source: "Found photos for a story.",
         render: "Rendered the images for a story.",
-        post: "Posted a carousel to Instagram.",
+        post: "Sent a carousel out.",
+        ready: "A carousel is finished — it's ready to post.",
       }[step] || `Ran ${step}.`;
       return { message: what };
     });

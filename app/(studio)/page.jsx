@@ -51,7 +51,7 @@ export default async function Dashboard() {
     // Everything that could belong on today's board: scheduled, posted or
     // touched in the last 36 hours. The cockpit matches them to slots below.
     db().from("stories")
-      .select("id,page_id,title,status,scheduled_at,posted_at,job,created_at,updated_at,pages(name)")
+      .select("id,page_id,title,status,scheduled_at,posted_at,job,created_at,updated_at,caption,pages(name)")
       .gte("updated_at", new Date(Date.now() - 36 * 3600e3).toISOString())
       .order("scheduled_at", { ascending: true, nullsFirst: false })
       .limit(120),
@@ -91,6 +91,19 @@ export default async function Dashboard() {
     .map((s) => s.job?.started_at || s.posted_at)
     .filter(Boolean).sort().pop();
 
+  // Finished carousels waiting on a hand to post them (no publishing account
+  // connected). Their latest render gives the slide files.
+  const ready = storyList.filter((s) => s.status === "approved");
+  const readyRenders = new Map();
+  if (ready.length) {
+    const { data: r } = await db()
+      .from("renders")
+      .select("story_id,files,created_at")
+      .in("story_id", ready.map((s) => s.id))
+      .order("created_at", { ascending: false });
+    for (const row of r || []) if (!readyRenders.has(row.story_id)) readyRenders.set(row.story_id, row.files);
+  }
+
   // ---- today's slots, matched to scheduled stories (the tick generator
   // schedules stories onto exactly these slot times)
   const dayISO = dayStart.toISOString().slice(0, 10);
@@ -121,9 +134,42 @@ export default async function Dashboard() {
         <Gauge big={lastStep ? ago(lastStep) : "idle"} label="last step" />
       </div>
 
-      <Leds anthropic={!!process.env.ANTHROPIC_API_KEY} instagram={!!(process.env.IG_USER_ID && process.env.IG_ACCESS_TOKEN)} />
+      <Leds anthropic={!!process.env.ANTHROPIC_API_KEY} publishing={!!(process.env.IG_USER_ID && process.env.IG_ACCESS_TOKEN)} />
 
       <Cockpit pages={pages} failures={failed} />
+
+      {ready.length > 0 && (
+        <section className="ck-ready">
+          <h2>Ready to post</h2>
+          <div className="list">
+            {ready.map((s) => {
+              const files = readyRenders.get(s.id) || [];
+              return (
+                <div key={s.id} className="ck-readyrow">
+                  <div className="ck-readytext">
+                    <Link className="ck-title" href={`/stories/${s.id}`}>{s.title}</Link>
+                    <span className="note">{s.pages?.name} · {files.length} slides · finished {ago(s.updated_at)}</span>
+                    {s.caption && (
+                      <details className="more">
+                        <summary>Caption</summary>
+                        <div className="morebody"><p className="note" style={{ whiteSpace: "pre-wrap" }}>{s.caption}</p></div>
+                      </details>
+                    )}
+                  </div>
+                  <div className="row ck-readyslides">
+                    {files.map((f) => (
+                      <a key={f.url} href={f.url} target="_blank" rel="noreferrer" download title={`Slide ${f.slide}`}>
+                        <img src={f.url} alt={`Slide ${f.slide}`} />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="hint">Finished carousels with nowhere to go. Open a slide to save it, copy the caption, and post from the phone.</p>
+        </section>
+      )}
 
       <section className="ck-timeline">
         <h2>Today's slots</h2>
@@ -167,18 +213,18 @@ function Gauge({ big, label, tone }) {
   );
 }
 
-function Leds({ anthropic, instagram }) {
-  const light = (ok, label) => (
-    <span className="ck-led">
-      <span className={`led ${ok ? "ok" : "bad"}`} />
+function Leds({ anthropic, publishing }) {
+  const light = (ok, label, hint) => (
+    <span className="ck-led" title={hint}>
+      <span className={`led ${ok ? "ok" : "warn"}`} />
       {label}
     </span>
   );
   return (
     <div className="row ck-leds">
       {light(true, "Supabase")}
-      {light(anthropic, "Claude API")}
-      {light(instagram, "Instagram")}
+      {light(anthropic, "Claude API", "Set ANTHROPIC_API_KEY")}
+      {light(publishing, "Auto-publish", "Connect a publishing account, or post finished carousels by hand below")}
       <span className="hint">Scheduler: GitHub Actions every 15 min → see .github/workflows/tick.yml</span>
     </div>
   );
