@@ -15,6 +15,9 @@ create table if not exists pages (
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
+-- Existing tables won't pick up the new column from CREATE TABLE IF NOT
+-- EXISTS, so add it explicitly. Safe to re-run.
+alter table pages add column if not exists config jsonb not null default '{}'::jsonb;
 
 -- One row per story. `slides` is the slide array the template renders.
 create table if not exists stories (
