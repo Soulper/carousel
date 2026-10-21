@@ -30,34 +30,43 @@ const ago = (iso) => {
   return `${Math.round(m / 1440)}d ago`;
 };
 
+/* Fall back to the sample board whenever the database can't be read, so a
+   wrong SUPABASE_URL or an un-run migration shows a working cockpit with a
+   banner instead of a blank 500. */
+const SAMPLE = () => ({
+  pages: [samplePage()],
+  recent: [{ ...sampleStoryRow(), pages: { name: samplePage().name } }],
+});
+
 export default async function Dashboard() {
-  const preview = !isConfigured();
+  let preview = !isConfigured();
+  let dbError = null;
+  let pages, recent;
+
   if (preview) {
-    const [{ data: pages = [] }, { data: stories = [] }] = [
-      { data: [samplePage()] },
-      { data: [{ ...sampleStoryRow(), pages: { name: samplePage().name } }] },
-    ];
-    return (
-      <div className="wrap">
-        <PreviewBanner />
-        <Cockpit pages={pages} preview />
-        <Secondary pages={pages} stories={stories} />
-      </div>
-    );
+    ({ pages, recent } = SAMPLE());
+  } else {
+    const [pagesRes, recentRes] = await Promise.all([
+      db().from("pages").select("id,name,handle,config").order("name"),
+      // Everything that could belong on today's board: scheduled, posted or
+      // touched in the last 36 hours. The cockpit matches them to slots below.
+      db().from("stories")
+        .select("id,page_id,title,status,scheduled_at,posted_at,job,created_at,updated_at,caption,pages(name)")
+        .gte("updated_at", new Date(Date.now() - 36 * 3600e3).toISOString())
+        .order("scheduled_at", { ascending: true, nullsFirst: false })
+        .limit(120),
+    ]);
+    dbError = pagesRes.error || recentRes.error;
+    if (dbError) {
+      preview = true;
+      ({ pages, recent } = SAMPLE());
+    } else {
+      pages = pagesRes.data || [];
+      recent = recentRes.data || [];
+    }
   }
 
-  const [{ data: pages = [] }, { data: recent = [] }] = await Promise.all([
-    db().from("pages").select("id,name,handle,config").order("name"),
-    // Everything that could belong on today's board: scheduled, posted or
-    // touched in the last 36 hours. The cockpit matches them to slots below.
-    db().from("stories")
-      .select("id,page_id,title,status,scheduled_at,posted_at,job,created_at,updated_at,caption,pages(name)")
-      .gte("updated_at", new Date(Date.now() - 36 * 3600e3).toISOString())
-      .order("scheduled_at", { ascending: true, nullsFirst: false })
-      .limit(120),
-  ]);
-
-  if (pages.length === 0) {
+  if (!preview && pages.length === 0) {
     return (
       <div className="wrap">
         <h1>Cockpit</h1>
@@ -118,6 +127,8 @@ export default async function Dashboard() {
 
   return (
     <div className="wrap">
+      {preview && (dbError ? <DbBanner error={dbError} /> : <PreviewBanner />)}
+
       <div className="row" style={{ justifyContent: "space-between", marginBottom: 18 }}>
         <h1 style={{ margin: 0 }}>Cockpit</h1>
         <span className="note">
@@ -136,7 +147,7 @@ export default async function Dashboard() {
 
       <Leds anthropic={!!process.env.ANTHROPIC_API_KEY} publishing={!!(process.env.IG_USER_ID && process.env.IG_ACCESS_TOKEN)} />
 
-      <Cockpit pages={pages} failures={failed} />
+      <Cockpit pages={pages} failures={failed} preview={preview} />
 
       {ready.length > 0 && (
         <section className="ck-ready">
@@ -280,6 +291,34 @@ function PreviewBanner() {
         <Link href={`/stories/${SAMPLE_ID}`}>Open the sample story</Link>
         <Link href="/queue">Open the review queue</Link>
       </div>
+    </div>
+  );
+}
+
+/* Sample board because the database couldn't be read. Says exactly which env
+   var to check rather than leaving a digest. */
+function DbBanner({ error }) {
+  const msg = error?.message || String(error || "");
+  const missing = error?.code === "42703" || /column .* does not exist/i.test(msg);
+  return (
+    <div className="banner">
+      {missing ? (
+        <>
+          <strong>The database needs an update — showing sample data.</strong>
+          This version expects columns your project doesn't have yet (<code>pages.config</code>,{" "}
+          <code>stories.scheduled_at</code>, <code>stories.caption</code>…). Open Supabase → SQL editor, paste{" "}
+          <code>supabase/schema.sql</code>, run it, then reload.
+        </>
+      ) : (
+        <>
+          <strong>Can't reach Supabase — showing sample data.</strong>
+          {msg}
+          <div>
+            Check <code>SUPABASE_URL</code> here and on Vercel: the host must resolve and the project must not be
+            paused (paused free projects stop answering).
+          </div>
+        </>
+      )}
     </div>
   );
 }

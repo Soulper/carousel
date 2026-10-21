@@ -16,15 +16,15 @@ export async function GET(req) {
 
 /* Your pipeline posts finished stories here:
    POST /api/stories   header x-api-key: PIPELINE_API_KEY
-   { page_id, title, slides: [...], hero_variant?, source_url?, status? } */
+   { page_id, title, slides: [...], caption?, hero_variant?, source_url?, status? } */
 export async function POST(req) {
   return run(async () => {
-    const { page_id, title, slides = [], hero_variant = "depth", source_url, status = "draft" } = await req.json();
+    const { page_id, title, slides = [], caption, hero_variant = "depth", source_url, status = "draft" } = await req.json();
     if (!page_id) return fail("page_id is required");
     if (!Array.isArray(slides)) return fail("slides must be an array");
     const { data, error } = await db()
       .from("stories")
-      .insert({ page_id, title: title || slides[0]?.headline || "Untitled story", slides, hero_variant, source_url, status })
+      .insert({ page_id, title: title || slides[0]?.headline || "Untitled story", slides, caption, hero_variant, source_url, status })
       .select()
       .single();
     if (error) throw error;

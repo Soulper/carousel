@@ -25,6 +25,7 @@ create table if not exists stories (
                 check (status in ('draft','ready','rendered','approved','posted','rejected')),
   hero_variant  text not null default 'depth',
   slides        jsonb not null default '[]'::jsonb,
+  caption       text,
   source_url    text,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
@@ -32,6 +33,8 @@ create table if not exists stories (
 -- What the image sourcer found (filled slots, low-res warning, candidate counts)
 alter table stories add column if not exists sourced_at  timestamptz;
 alter table stories add column if not exists source_meta jsonb;
+-- The Instagram caption the copywriter wrote (the slides carry the slide text)
+alter table stories add column if not exists caption      text;
 -- Where a long job got to, when the host can't keep the request open for it
 -- (Netlify): { kind, started_at, finished_at, result } or { ..., error }.
 -- The browser polls this while it waits.
