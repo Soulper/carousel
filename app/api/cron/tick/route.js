@@ -1,6 +1,6 @@
 import { db, isConfigured } from "@/lib/supabase";
 import { ok, fail, run } from "@/lib/http";
-import { setJob } from "@/lib/jobs";
+import { setJob, JobError } from "@/lib/jobs";
 import { generateStory, quotaRemaining } from "@/lib/topic";
 import { writeCopy } from "@/lib/copy";
 import { sourceStory } from "@/lib/source";
@@ -141,6 +141,20 @@ async function runStep(step, s) {
   }
   if (step === "source") {
     const r = await sourceStory(s.id);
+    // Guardrail: visible photo repeats make a carousel look broken. The
+    // sourcer duplicates only when the web is out of distinct pictures — a
+    // weak story. Reject it; the next tick's generate step brings a fresh
+    // topic. One forced repeat (usually the cover inset) is tolerated.
+    const { data: fresh } = await db().from("stories").select("source_meta").eq("id", s.id).single();
+    const meta = fresh?.source_meta || {};
+    if ((meta.unfilled || []).length) {
+      await db().from("stories").update({ status: "rejected" }).eq("id", s.id);
+      throw new JobError(`Couldn't fill ${meta.unfilled.length} photo slot(s). Story rejected; a new topic will be picked.`);
+    }
+    if ((meta.reused || []).length >= 2) {
+      await db().from("stories").update({ status: "rejected" }).eq("id", s.id);
+      throw new JobError(`Only ${meta.distinct ?? "?"} distinct photos for ${meta.slots ?? "?"} slots. Story rejected; a new topic will be picked.`);
+    }
     return { step, message: r.message || "sourced" };
   }
   if (step === "render") {
