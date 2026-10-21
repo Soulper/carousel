@@ -27,7 +27,7 @@ const demoStory = () => ({
 
 export default async function QueuePage() {
   if (!isConfigured()) return <Queue initial={[demoStory()]} labels={LABEL} preview />;
-  const select = "id,title,status,hero_variant,slides,caption,source_url,sourced_at,source_meta,scheduled_at,posted_at,job,updated_at,pages(id,name,brand)";
+  const select = "id,title,status,hero_variant,slides,caption,batch,source_url,sourced_at,source_meta,scheduled_at,posted_at,job,updated_at,pages(id,name,brand)";
   const since = new Date(Date.now() - 7 * 864e5).toISOString();
   const [{ data: pending, error }, { data: done, error: doneErr }] = await Promise.all([
     db().from("stories").select(select).in("status", PENDING).order("updated_at", { ascending: false }).limit(LIMIT),

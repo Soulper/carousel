@@ -291,6 +291,10 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
     saved === "dirty" ? "Saving shortly…" :
     saved === "error" ? "" : "All changes saved");
 
+  // The batch tag rides along on every slide caption, so a screenshot of one
+  // slide still says which generation run it came from.
+  const batchTag = story.batch ? ` · ${story.batch}` : "";
+
   /* The canvas either shows the selected slide or, with "compare" ticked, all
      six cover variants — the two views answer different questions, so they
      can't share the same grid. */
@@ -306,7 +310,7 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
           brand={brand}
           index={`stage-${selected}`}
           scale={0.48}
-          caption={selected === 0 ? "Cover" : `Slide ${selected + 1}`}
+          caption={selected === 0 ? `Cover${batchTag}` : `Slide ${selected + 1}${batchTag}`}
         />
       </div>;
 
@@ -338,6 +342,7 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
       <main className="canvas">
         <div className="canvas-head">
           <h1 className="display">{story.title || "Untitled story"}</h1>
+          {story.batch && <span className="pill" title="Which generation run made this">{story.batch}</span>}
           <label className="check">
             <input type="checkbox" checked={allHeroes} onChange={(e) => setAllHeroes(e.target.checked)} />
             Compare all cover styles
@@ -377,7 +382,7 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
                     brand={brand}
                     index={`strip-${i}`}
                     scale={0.15}
-                    caption={i === 0 ? "Cover" : `Slide ${i + 1}`}
+                    caption={i === 0 ? `Cover${batchTag}` : `Slide ${i + 1}${batchTag}`}
                   />
                 </button>
               ))}

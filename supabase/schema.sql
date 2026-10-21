@@ -26,6 +26,7 @@ create table if not exists stories (
   title         text not null default 'Untitled story',
   status        text not null default 'draft'
                 check (status in ('draft','ready','rendered','approved','posted','rejected')),
+  batch         text,
   hero_variant  text not null default 'depth',
   slides        jsonb not null default '[]'::jsonb,
   caption       text,
@@ -47,6 +48,9 @@ alter table stories add column if not exists job         jsonb;
 alter table stories add column if not exists scheduled_at timestamptz;
 alter table stories add column if not exists posted_at    timestamptz;
 alter table stories add column if not exists ig_media_id  text;
+-- Which generation run made this story ("2026-10-21 #03"), set by the tick's
+-- topic step. Manual stories leave it null.
+alter table stories add column if not exists batch        text;
 create index if not exists stories_status_idx on stories(status, updated_at desc);
 create index if not exists stories_page_idx on stories(page_id, created_at desc);
 create index if not exists stories_schedule_idx on stories(scheduled_at) where scheduled_at is not null;

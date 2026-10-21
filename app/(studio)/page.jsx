@@ -51,7 +51,7 @@ export default async function Dashboard() {
       // Everything that could belong on today's board: scheduled, posted or
       // touched in the last 36 hours. The cockpit matches them to slots below.
       db().from("stories")
-        .select("id,page_id,title,status,scheduled_at,posted_at,job,created_at,updated_at,caption,pages(name)")
+        .select("id,page_id,title,status,batch,scheduled_at,posted_at,job,created_at,updated_at,caption,pages(name)")
         .gte("updated_at", new Date(Date.now() - 36 * 3600e3).toISOString())
         .order("scheduled_at", { ascending: true, nullsFirst: false })
         .limit(120),
@@ -196,7 +196,7 @@ export default async function Dashboard() {
                   <>
                     <Link className="ck-title" href={`/stories/${s.id}`}>{s.pages?.name ? `${s.pages.name} · ` : ""}{s.title}</Link>
                     <span className={`led ${tone}`} title={text} />
-                    <span className="muted">{text}</span>
+                    <span className="muted">{text}{s.batch ? ` · ${s.batch}` : ""}</span>
                   </>
                 ) : (
                   <span className="ck-title muted">open slot</span>
@@ -270,7 +270,7 @@ function Secondary({ pages, stories }) {
           <Link key={s.id} href={`/stories/${s.id}`}>
             <span>{s.title}</span>
             <span className="row">
-              <span className="muted">{s.pages?.name}</span>
+              <span className="muted">{[s.pages?.name, s.batch].filter(Boolean).join(" · ")}</span>
               <span className={`pill ${s.status}`}>{s.status}</span>
             </span>
           </Link>

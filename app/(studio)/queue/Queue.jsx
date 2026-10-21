@@ -127,6 +127,7 @@ function Card({ story, preview, onChange, labels = {} }) {
           <Link href={`/stories/${story.id}`}>{story.slides[0]?.headline || story.title}</Link>
         </h2>
         <ul className="qmeta">
+          {story.batch && <li className="muted">Batch {story.batch}</li>}
           <li className={c.allImages ? "ok" : "todo"}>
             {c.allImages ? `All ${c.slots} photos added` : `Photos ${c.images} of ${c.slots}`}
             {c.lowRes ? " · some below full resolution" : ""}
