@@ -186,6 +186,12 @@ async function post(s) {
     .order("created_at", { ascending: false })
     .limit(1);
   const files = latest?.[0]?.files || [];
+  const slides = Array.isArray(s.slides) ? s.slides : [];
+  const empty = slides.filter((sl) => !sl.bg?.src).length;
+  if (empty) {
+    await db().from("stories").update({ status: "rejected" }).eq("id", s.id);
+    throw new Error(`${empty} of ${slides.length} slides have no photo — not sending this out. It needs sourcing, not posting.`);
+  }
   if (files.length < 2) {
     await db().from("stories").update({ status: "rejected" }).eq("id", s.id);
     throw new Error("Rendered with fewer than two images; not posting.");
