@@ -228,12 +228,7 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
     await refresh();
     const parts = [`Filled ${r.filled.length} of ${r.slots} slots from ${r.candidates} candidates (${r.kept} usable, ${r.distinct} different photo${r.distinct === 1 ? "" : "s"}).`];
     if (r.unfilled?.length) {
-      parts.push(`${r.unfilled.length} slide${r.unfilled.length === 1 ? "" : "s"} couldn't be matched to a photo and kept what ${r.unfilled.length === 1 ? "it" : "they"} had.`);
-    }
-    if (r.shortfall) {
-      parts.push(`Only ${r.kept} usable photos for ${r.slots} slides, so ${r.reused.length} slide${r.reused.length === 1 ? " repeats a" : "s repeat a"} photo. Add a source link or upload more images for a fully unique set.`);
-    } else if (r.reused?.length) {
-      parts.push(`${r.reused.length} slide${r.reused.length === 1 ? " repeats" : "s repeat"} a photo, cropped differently.`);
+      parts.push(`${r.unfilled.length} slide${r.unfilled.length === 1 ? "" : "s"} left empty — the web doesn't have enough DIFFERENT pictures for this story. Add a source link, upload images, or pick a different topic.`);
     }
     if (r.lowRes) parts.push("Some photos are below full resolution and may look soft when scaled up.");
     if (r.cost) parts.push(`Cost: ${r.cost.cents.toFixed(1)}¢.`);
