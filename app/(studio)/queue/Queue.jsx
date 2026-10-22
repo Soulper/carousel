@@ -128,6 +128,14 @@ function Card({ story, preview, onChange, labels = {} }) {
         </h2>
         <ul className="qmeta">
           {story.batch && <li className="muted">Batch {story.batch}</li>}
+          {story.source_meta?.distinct != null && (
+            <li className={story.source_meta.distinct >= (story.source_meta.slots || 0) - 1 ? "ok" : "todo"}>
+              {story.source_meta.distinct} of {story.source_meta.slots} slots got a distinct photo
+              {(story.source_meta.dupes?.length || story.source_meta.reused?.length)
+                ? ` · ${story.source_meta.dupes?.length || 0} flagged + ${story.source_meta.reused?.length || 0} repeated`
+                : ""}
+            </li>
+          )}
           <li className={c.allImages ? "ok" : "todo"}>
             {c.allImages ? `All ${c.slots} photos added` : `Photos ${c.images} of ${c.slots}`}
             {c.lowRes ? " · some below full resolution" : ""}

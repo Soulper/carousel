@@ -107,7 +107,7 @@ export async function GET() {
 async function candidates(statuses) {
   const { data, error } = await db()
     .from("stories")
-    .select("id,page_id,title,status,hero_variant,slides,caption,scheduled_at,sourced_at,job,created_at,pages(config)")
+    .select("id,page_id,title,status,hero_variant,slides,caption,scheduled_at,sourced_at,source_meta,job,created_at,pages(config)")
     .in("status", statuses)
     .order("scheduled_at", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true })
@@ -140,22 +140,35 @@ async function runStep(step, s) {
     return { step, written: r.written ?? 0, caption: !!r.caption };
   }
   if (step === "source") {
-    const r = await sourceStory(s.id);
-    // Guardrail: visible photo repeats make a carousel look broken. The
-    // sourcer duplicates only when the web is out of distinct pictures — a
-    // weak story. Reject it; the next tick's generate step brings a fresh
-    // topic. One forced repeat (usually the cover inset) is tolerated.
+    // A thin first pass isn't a verdict. If the photos came back sparse or
+    // repetitive, the NEXT tick retries with a deeper search (more articles,
+    // more tool calls) before the story is condemned — weak stories are often
+    // just under-searched ones. Retry state rides on source_meta.
+    const retrying = !!s.source_meta?.deeper;
+    const r = await sourceStory(s.id, { overwrite: retrying, deeper: retrying });
     const { data: fresh } = await db().from("stories").select("source_meta").eq("id", s.id).single();
     const meta = fresh?.source_meta || {};
-    if ((meta.unfilled || []).length) {
-      await db().from("stories").update({ status: "rejected" }).eq("id", s.id);
-      throw new JobError(`Couldn't fill ${meta.unfilled.length} photo slot(s). Story rejected; a new topic will be picked.`);
+    const weak = (meta.unfilled || []).length > 0 || (meta.reused || []).length >= 2;
+
+    if (!weak) {
+      if (retrying) {
+        const clean = { ...meta };
+        delete clean.deeper;
+        await db().from("stories").update({ source_meta: clean }).eq("id", s.id);
+      }
+      return { step, message: r.message || "sourced" };
     }
-    if ((meta.reused || []).length >= 2) {
-      await db().from("stories").update({ status: "rejected" }).eq("id", s.id);
-      throw new JobError(`Only ${meta.distinct ?? "?"} distinct photos for ${meta.slots ?? "?"} slots. Story rejected; a new topic will be picked.`);
+
+    if (!retrying) {
+      await db().from("stories").update({ sourced_at: null, source_meta: { ...meta, deeper: true } }).eq("id", s.id);
+      return { step, message: "First pass was thin — a deeper search is queued for the next tick." };
     }
-    return { step, message: r.message || "sourced" };
+
+    await db().from("stories").update({ status: "rejected" }).eq("id", s.id);
+    const why = (meta.unfilled || []).length
+      ? `Couldn't fill ${meta.unfilled.length} photo slot(s)`
+      : `Only ${meta.distinct ?? "?"} distinct photos for ${meta.slots ?? "?"} slots`;
+    throw new JobError(`${why}, even after a deeper search. Story rejected; a new topic will be picked.`);
   }
   if (step === "render") {
     const r = await renderStory(s.id, [s.hero_variant]);
