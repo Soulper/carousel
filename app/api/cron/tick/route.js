@@ -1,6 +1,7 @@
 import { db, isConfigured } from "@/lib/supabase";
 import { ok, fail, run } from "@/lib/http";
 import { setJob, JobError } from "@/lib/jobs";
+import { aiConfigured } from "@/lib/ai";
 import { generateStory, quotaRemaining } from "@/lib/topic";
 import { writeCopy } from "@/lib/copy";
 import { sourceStory } from "@/lib/source";
@@ -93,7 +94,7 @@ export async function GET() {
       autopilot_pages: pages.length,
       configured: {
         supabase: true,
-        anthropic: !!process.env.ANTHROPIC_API_KEY,
+        ai: aiConfigured(),
         publish: canPublish(),
       },
       pending: pending.length,

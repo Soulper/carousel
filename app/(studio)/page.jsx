@@ -145,7 +145,7 @@ export default async function Dashboard() {
         <Gauge big={lastStep ? ago(lastStep) : "idle"} label="last step" />
       </div>
 
-      <Leds anthropic={!!process.env.ANTHROPIC_API_KEY} publishing={!!(process.env.IG_USER_ID && process.env.IG_ACCESS_TOKEN)} />
+      <Leds ai={!!(process.env.ANTHROPIC_API_KEY || process.env.GEMINI_API_KEY)} publishing={!!(process.env.IG_USER_ID && process.env.IG_ACCESS_TOKEN)} />
 
       <Cockpit pages={pages} failures={failed} preview={preview} />
 
@@ -224,7 +224,7 @@ function Gauge({ big, label, tone }) {
   );
 }
 
-function Leds({ anthropic, publishing }) {
+function Leds({ ai, publishing }) {
   const light = (ok, label, hint) => (
     <span className="ck-led" title={hint}>
       <span className={`led ${ok ? "ok" : "warn"}`} />
@@ -234,7 +234,7 @@ function Leds({ anthropic, publishing }) {
   return (
     <div className="row ck-leds">
       {light(true, "Supabase")}
-      {light(anthropic, "Claude API", "Set ANTHROPIC_API_KEY")}
+      {light(ai, "AI (Claude/Gemini)", "Set ANTHROPIC_API_KEY or a free GEMINI_API_KEY")}
       {light(publishing, "Auto-publish", "Connect a publishing account, or post finished carousels by hand below")}
       <span className="hint">Scheduler: GitHub Actions every 15 min → see .github/workflows/tick.yml</span>
     </div>
