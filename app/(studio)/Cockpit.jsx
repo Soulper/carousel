@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/client";
 
-/* The cockpit's live controls: run the next step by hand, pause/resume the
-   autopilot, and retry a failed story. Everything else on the dashboard is
-   server-rendered; these buttons re-fetch after acting so the gauges move. */
-export default function Cockpit({ pages, failures = [], preview }) {
+/* The cockpit's live pieces. Split in two so the page can lay them out
+   separately: CockpitActions sits in the header, CockpitFailures in the side
+   column. Both share the same tick/act plumbing. */
+function useCockpit(preview) {
   const router = useRouter();
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState("");
@@ -22,6 +22,7 @@ export default function Cockpit({ pages, failures = [], preview }) {
       router.refresh();
     } catch (e) { setErr(e.message); } finally { setBusy(""); }
   };
+
   const tick = (storyId) =>
     act(storyId ? "Retrying…" : "Running…", async () => {
       const r = await api("/api/cron/tick", { method: "POST", body: { story_id: storyId || undefined } });
@@ -37,51 +38,69 @@ export default function Cockpit({ pages, failures = [], preview }) {
       }[step] || `Ran ${step}.`;
       return { message: what };
     });
+
   const toggle = (page) =>
     act("Switching…", async () => {
       await api(`/api/pages/${page.id}`, { method: "PUT", body: { config: { ...page.config, autopilot: page.config?.autopilot === false } } });
       return { message: page.config?.autopilot === false ? `Autopilot resumed for ${page.name}.` : `Autopilot paused for ${page.name}.` };
     });
 
-  const on = pages.filter((p) => p.config?.autopilot !== false);
-  const allOn = on.length === pages.length && pages.length > 0;
+  return { busy, msg, err, tick, toggle };
+}
 
+export function CockpitActions({ pages = [], preview }) {
+  const { busy, msg, err, tick, toggle } = useCockpit(preview);
   return (
-    <>
-      <div className="ck-actions row">
-        <button className="btn primary" onClick={() => tick()} disabled={!!busy}>
-          {busy || "Run next step now"}
+    <div className="ck-controls">
+      <button className="btn primary" onClick={() => tick()} disabled={!!busy}>
+        {busy || "Run next step now"}
+      </button>
+      {pages.map((p) => (
+        <button key={p.id} className="btn" onClick={() => toggle(p)} disabled={!!busy}>
+          {p.config?.autopilot === false ? `Resume ${p.name}` : `Pause ${p.name}`}
         </button>
-        {pages.map((p) => (
-          <button key={p.id} className="btn" onClick={() => toggle(p)} disabled={!!busy}>
-            {p.config?.autopilot === false ? `Resume ${p.name}` : `Pause ${p.name}`}
-          </button>
-        ))}
-        {(msg || err) && <span className={err ? "err" : "note"}>{err || msg}</span>}
-      </div>
+      ))}
+      {(msg || err) && <p className={err ? "err ck-note" : "note ck-note"}>{err || msg}</p>}
+    </div>
+  );
+}
 
-      {failures.length > 0 && (
-        <section className="ck-failures">
+export function CockpitFailures({ failures = [], preview }) {
+  const { busy, msg, err, tick } = useCockpit(preview);
+  if (!failures.length) {
+    return (
+      <section className="ck-card">
+        <div className="ck-card-head">
           <h2>Failure board</h2>
-          <div className="list">
-            {failures.map((f) => (
-              <div key={f.id} className="ck-failrow">
-                <div className="ck-failtext">
-                  <strong>{f.title}</strong>
-                  <span className="err">{f.job?.error}</span>
-                </div>
-                <div className="row">
-                  <button className="btn" onClick={() => tick(f.id)} disabled={!!busy}>{busy || "Retry"}</button>
-                  <Link className="btn ghost" href={`/stories/${f.id}`}>Open</Link>
-                </div>
-              </div>
-            ))}
+        </div>
+        <div className="ck-empty">
+          <span className="led ok" />
+          Nothing broken. Every story is moving.
+        </div>
+      </section>
+    );
+  }
+  return (
+    <section className="ck-card">
+      <div className="ck-card-head">
+        <h2>Failure board</h2>
+        <span className="ck-count bad">{failures.length}</span>
+      </div>
+      <div className="ck-list">
+        {failures.map((f) => (
+          <div key={f.id} className="ck-failrow">
+            <div className="ck-failtext">
+              <Link className="ck-row-title" href={`/stories/${f.id}`}>{f.title}</Link>
+              <span className="err">{f.job?.error}</span>
+            </div>
+            <div className="ck-failacts">
+              <button className="btn" onClick={() => tick(f.id)} disabled={!!busy}>{busy ? "…" : "Retry"}</button>
+              <Link className="btn ghost" href={`/stories/${f.id}`}>Open</Link>
+            </div>
           </div>
-        </section>
-      )}
-      {pages.length > 0 && !allOn && !failures.length && (
-        <p className="note" style={{ marginTop: 12 }}>Autopilot is paused — nothing new gets made until you resume it.</p>
-      )}
-    </>
+        ))}
+      </div>
+      {(msg || err) && <p className={err ? "err ck-note" : "note ck-note"}>{err || msg}</p>}
+    </section>
   );
 }

@@ -482,26 +482,70 @@ details.more .morebody { display: grid; gap: 18px; padding: 16px 0 4px; }
 .qslides img { height: 220px; border-radius: var(--r-sm); display: block; }
 .qslides .thumb figcaption { display: none; }
 
-/* ---- Cockpit ------------------------------------------------------------ */
+/* ---- Cockpit ------------------------------------------------------------
+   A flight deck, not a packed suitcase: one header with the controls, a row
+   of gauges, then two columns — the day's slots on the left, anything that
+   needs a human (failures, finished carousels) in the right rail. */
+.cockpit { max-width: 1360px; padding: 36px 40px 96px; }
+
+.ck-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 28px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+.ck-head h1 { margin: 0 0 6px; }
+.ck-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--t-small);
+  color: var(--text-dim);
+  margin: 0;
+}
+.ck-dot { color: var(--text-mute); }
+.ck-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ck-note { flex-basis: 100%; text-align: right; margin: 2px 0 0; }
+
 .ck-gauges {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 10px;
-  margin-bottom: 14px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
 }
 .ck-gauge {
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--surface);
-  padding: 14px 16px 12px;
+  padding: 18px 20px 16px;
   display: grid;
-  gap: 4px;
+  gap: 8px;
+  min-width: 0;
 }
-.ck-gauge-big { font: 600 var(--t-display)/1 var(--font); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.ck-gauge-big {
+  font: 600 34px/1 var(--font);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.ck-gauge.ok .ck-gauge-big { color: var(--ok); }
 .ck-gauge.bad .ck-gauge-big { color: var(--bad); }
-.ck-actions { margin: 4px 0 8px; }
-.ck-leds { gap: 16px; margin-bottom: 22px; }
-.ck-led { display: inline-flex; align-items: center; gap: 7px; font-size: var(--t-small); color: var(--text-dim); }
+
+.ck-leds {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+  padding: 12px 18px;
+  margin-bottom: 26px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.ck-led { display: inline-flex; align-items: center; gap: 8px; font-size: var(--t-small); color: var(--text-dim); }
+.ck-leds .hint { margin-left: auto; }
 .led {
   width: 9px; height: 9px; border-radius: 50%;
   background: var(--text-mute);
@@ -511,12 +555,60 @@ details.more .morebody { display: grid; gap: 18px; padding: 16px 0 4px; }
 .led.warn { background: var(--warn); }
 .led.bad { background: var(--bad); }
 
-.ck-timeline h2 { margin-bottom: 10px; }
-.ck-slot {
+/* Board: slots left, side rail right */
+.ck-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr);
+  gap: 22px;
+  align-items: start;
+  margin-bottom: 34px;
+}
+.ck-side { display: grid; gap: 22px; min-width: 0; }
+
+.ck-card {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  min-width: 0;
+}
+.ck-card-head {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px 18px;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.ck-card-head h2 { margin: 0; }
+.ck-card-head .ck-sub { margin-left: auto; }
+.ck-count {
+  margin-left: auto;
+  font: 600 var(--t-small)/1 var(--font);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  padding: 4px 10px;
+}
+.ck-count.bad { color: var(--bad); border-color: var(--bad); }
+.ck-card-foot { padding: 14px 20px; border-bottom: 1px solid var(--line-soft); }
+.ck-foot { padding: 12px 20px; margin: 0; font-size: var(--t-small); color: var(--text-mute); }
+
+.ck-list { display: grid; }
+.ck-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  color: var(--text-dim);
+  font-size: var(--t-body);
+}
+
+.ck-slot {
+  display: grid;
+  grid-template-columns: 56px 12px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 16px;
+  padding: 15px 20px;
   border-bottom: 1px solid var(--line-soft);
   font-size: var(--t-body);
 }
@@ -525,55 +617,91 @@ details.more .morebody { display: grid; gap: 18px; padding: 16px 0 4px; }
   font: 600 var(--t-lead)/1 var(--font);
   font-variant-numeric: tabular-nums;
   color: var(--text-dim);
-  width: 52px; flex: none;
 }
 .ck-slot.ok .ck-time { color: var(--ok); }
 .ck-slot.bad .ck-time { color: var(--bad); }
-.ck-title {
-  flex: 1;
+.ck-batch {
+  font-size: var(--t-small);
+  color: var(--text-mute);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ck-row-title {
   min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   text-decoration: none;
+  color: inherit;
 }
-.ck-title:not(.muted):hover { text-decoration: underline; }
+.ck-row-title:not(.muted):hover { text-decoration: underline; }
 
-.ck-ready h2 { margin-bottom: 10px; }
+.ck-linkrow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line-soft);
+  text-decoration: none;
+  color: inherit;
+}
+.ck-linkrow:last-child { border-bottom: 0; }
+.ck-linkrow:hover { background: var(--raised); }
+
+.ck-failrow {
+  display: grid;
+  gap: 10px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.ck-failrow:last-child { border-bottom: 0; }
+.ck-failtext { display: grid; gap: 4px; min-width: 0; }
+.ck-failtext .ck-row-title { white-space: normal; font-weight: 600; }
+.ck-failacts { display: flex; gap: 8px; }
+
 .ck-readyrow {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) auto;
-  gap: 16px;
-  align-items: center;
-  padding: 14px 18px;
+  gap: 14px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--line-soft);
 }
 .ck-readyrow:last-child { border-bottom: 0; }
 .ck-readytext { display: grid; gap: 4px; min-width: 0; }
-.ck-readytext .ck-title { white-space: normal; }
-.ck-readyslides { flex-wrap: nowrap; overflow-x: auto; max-width: 60vw; }
-.ck-readyslides img { height: 74px; border-radius: 3px; display: block; }
+.ck-readytext .ck-row-title { white-space: normal; font-weight: 600; }
+.ck-readyslides { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.ck-readyslides img { height: 72px; border-radius: 3px; display: block; }
 .ck-readyslides a:hover img { outline: 1px solid var(--accent); }
 
-.ck-failures h2 { margin-bottom: 10px; }
-.ck-failrow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--line-soft);
+.ck-secondary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
 }
-.ck-failrow:last-child { border-bottom: 0; }
-.ck-failtext { display: grid; gap: 3px; min-width: 0; }
-.ck-failtext strong { font-size: var(--t-body); font-weight: 600; }
 
 /* ---- Responsive --------------------------------------------------------- */
 @media (max-width: 1280px) {
   .editor { grid-template-columns: 172px minmax(0, 1fr) 348px; }
   .canvas { padding: 24px; }
+  .ck-gauges { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 1100px) {
   .cols { grid-template-columns: 330px minmax(0, 1fr); }
   .main { padding: 28px; }
+  /* Below this the side rail stops earning its keep: one column, board first. */
+  .ck-cols, .ck-secondary { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+  .cockpit { padding: 26px 20px 72px; }
+  .ck-gauges { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ck-gauge-big { font-size: 28px; }
+  .ck-head { gap: 16px; }
+  .ck-controls { width: 100%; }
+  .ck-controls .btn { flex: 1; }
+  .ck-slot { grid-template-columns: 48px 10px minmax(0, 1fr) auto; gap: 12px; padding: 13px 16px; }
+  .ck-slot .ck-batch { display: none; }
+  .ck-leds { gap: 14px; padding: 14px 16px; }
+  .ck-leds .hint { display: none; }
 }
 @media (max-width: 980px) {
   /* Below this the three columns stop earning their keep: the rail becomes a

@@ -4,7 +4,7 @@ import { missingEnv, samplePage, sampleStoryRow, SAMPLE_ID } from "@/lib/preview
 import { pageConfig } from "@/lib/topic";
 import NewPage from "./NewPage";
 import NewStory from "./NewStory";
-import Cockpit from "./Cockpit";
+import { CockpitActions, CockpitFailures } from "./Cockpit";
 
 export const dynamic = "force-dynamic";
 
@@ -125,19 +125,27 @@ export default async function Dashboard() {
   const fullSlots = times.sort((a, b) => a - b);
   const bySlot = new Map(storyList.filter((s) => s.scheduled_at).map((s) => [new Date(s.scheduled_at).toISOString(), s]));
 
+  const autopilotOn = cfg.autopilot !== false;
+
   return (
-    <div className="wrap">
+    <div className="wrap cockpit">
       {preview && (dbError ? <DbBanner error={dbError} /> : <PreviewBanner />)}
 
-      <div className="row" style={{ justifyContent: "space-between", marginBottom: 18 }}>
-        <h1 style={{ margin: 0 }}>Cockpit</h1>
-        <span className="note">
-          {cfg.autopilot === false ? "Autopilot paused" : "Autopilot on"} · {slotLabel(new Date())} UTC
-        </span>
-      </div>
+      <header className="ck-head">
+        <div>
+          <h1>Cockpit</h1>
+          <p className="ck-sub">
+            <span className={`led ${autopilotOn ? "ok" : "warn"}`} />
+            {autopilotOn ? "Autopilot on" : "Autopilot paused"}
+            <span className="ck-dot">·</span>
+            {slotLabel(new Date())} UTC
+          </p>
+        </div>
+        <CockpitActions pages={pages} preview={preview} />
+      </header>
 
       <div className="ck-gauges">
-        <Gauge big={`${posted.length}/${quota}`} label="posted today" />
+        <Gauge big={`${posted.length}/${quota}`} label="posted today" tone={posted.length ? "ok" : undefined} />
         <Gauge big={String(factory.length)} label="in factory" />
         <Gauge big={String(renderedWaiting.length)} label="ready to fly" />
         <Gauge big={failed.length ? String(failed.length) : "—"} label="failures" tone={failed.length ? "bad" : undefined} />
@@ -147,68 +155,81 @@ export default async function Dashboard() {
 
       <Leds ai={!!(process.env.ANTHROPIC_API_KEY || process.env.GEMINI_API_KEY)} publishing={!!(process.env.IG_USER_ID && process.env.IG_ACCESS_TOKEN)} />
 
-      <Cockpit pages={pages} failures={failed} preview={preview} />
-
-      {ready.length > 0 && (
-        <section className="ck-ready">
-          <h2>Ready to post</h2>
-          <div className="list">
-            {ready.map((s) => {
-              const files = readyRenders.get(s.id) || [];
+      <div className="ck-cols">
+        <section className="ck-card ck-card-wide">
+          <div className="ck-card-head">
+            <h2>Today's slots</h2>
+            <span className="ck-sub">08:00–22:00 UTC</span>
+          </div>
+          <div className="ck-list">
+            {fullSlots.length === 0 && <div className="ck-empty">No slots configured for this page.</div>}
+            {fullSlots.map((d) => {
+              const s = bySlot.get(d.toISOString());
+              const [text, tone] = s ? (LED[s.status] || [s.status, "warn"]) : ["open", null];
+              const now = d <= new Date();
               return (
-                <div key={s.id} className="ck-readyrow">
-                  <div className="ck-readytext">
-                    <Link className="ck-title" href={`/stories/${s.id}`}>{s.title}</Link>
-                    <span className="note">{s.pages?.name} · {files.length} slides · finished {ago(s.updated_at)}</span>
-                    {s.caption && (
-                      <details className="more">
-                        <summary>Caption</summary>
-                        <div className="morebody"><p className="note" style={{ whiteSpace: "pre-wrap" }}>{s.caption}</p></div>
-                      </details>
-                    )}
-                  </div>
-                  <div className="row ck-readyslides">
-                    {files.map((f) => (
-                      <a key={f.url} href={f.url} target="_blank" rel="noreferrer" download title={`Slide ${f.slide}`}>
-                        <img src={f.url} alt={`Slide ${f.slide}`} />
-                      </a>
-                    ))}
-                  </div>
+                <div key={d.toISOString()} className={`ck-slot ${tone || ""}`}>
+                  <span className="ck-time">{slotLabel(d)}</span>
+                  <span className={`led ${tone || ""}`} />
+                  {s ? (
+                    <>
+                      <Link className="ck-row-title" href={`/stories/${s.id}`}>{s.title}</Link>
+                      <span className="ck-batch">{s.batch || s.pages?.name || ""}</span>
+                      <span className={`pill ${s.status}`}>{text}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="ck-row-title muted">{now ? "went unfilled" : "open slot"}</span>
+                      <span className="ck-batch" />
+                      <span className="pill">—</span>
+                    </>
+                  )}
                 </div>
               );
             })}
           </div>
-          <p className="hint">Finished carousels with nowhere to go. Open a slide to save it, copy the caption, and post from the phone.</p>
         </section>
-      )}
 
-      <section className="ck-timeline">
-        <h2>Today's slots</h2>
-        <div className="list">
-          {fullSlots.length === 0 && <div className="ck-slot"><span className="muted">No slots configured for this page.</span></div>}
-          {fullSlots.map((d) => {
-            const s = bySlot.get(d.toISOString());
-            const [text, tone] = s ? (LED[s.status] || [s.status, "warn"]) : ["open", null];
-            return (
-              <div key={d.toISOString()} className={`ck-slot ${tone || ""}`}>
-                <span className="ck-time">{slotLabel(d)}</span>
-                {s ? (
-                  <>
-                    <Link className="ck-title" href={`/stories/${s.id}`}>{s.pages?.name ? `${s.pages.name} · ` : ""}{s.title}</Link>
-                    <span className={`led ${tone}`} title={text} />
-                    <span className="muted">{text}{s.batch ? ` · ${s.batch}` : ""}</span>
-                  </>
-                ) : (
-                  <span className="ck-title muted">open slot</span>
-                )}
+        <div className="ck-side">
+          <CockpitFailures failures={failed} preview={preview} />
+
+          {ready.length > 0 && (
+            <section className="ck-card">
+              <div className="ck-card-head">
+                <h2>Ready to post</h2>
+                <span className="ck-count">{ready.length}</span>
               </div>
-            );
-          })}
+              <div className="ck-list">
+                {ready.map((s) => {
+                  const files = readyRenders.get(s.id) || [];
+                  return (
+                    <div key={s.id} className="ck-readyrow">
+                      <div className="ck-readytext">
+                        <Link className="ck-row-title" href={`/stories/${s.id}`}>{s.title}</Link>
+                        <span className="ck-sub">{s.pages?.name} · {files.length} slides · {ago(s.updated_at)}</span>
+                        {s.caption && (
+                          <details className="more">
+                            <summary>Caption</summary>
+                            <div className="morebody"><p className="note" style={{ whiteSpace: "pre-wrap" }}>{s.caption}</p></div>
+                          </details>
+                        )}
+                      </div>
+                      <div className="ck-readyslides">
+                        {files.map((f) => (
+                          <a key={f.url} href={f.url} target="_blank" rel="noreferrer" download title={`Slide ${f.slide}`}>
+                            <img src={f.url} alt={`Slide ${f.slide}`} />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="ck-foot">Open a slide to save it, copy the caption, post from the phone.</p>
+            </section>
+          )}
         </div>
-        <p className="hint">
-          Slots run 08:00–22:00 UTC unless the page config sets its own. Stories land in slots when the topic finder runs; unsold slots stay open.
-        </p>
-      </section>
+      </div>
 
       <Secondary pages={pages} stories={storyList.slice(0, 15)} />
     </div>
@@ -245,38 +266,40 @@ function Leds({ ai, publishing }) {
    cockpit board above is the daily surface. */
 function Secondary({ pages, stories }) {
   return (
-    <>
-      <h2 style={{ marginTop: 34 }}>Pages</h2>
-      <div className="list">
-        {pages.map((p) => (
-          <Link key={p.id} href={`/pages/${p.id}`}>
-            <span>{p.name}{p.config?.autopilot === false ? " · paused" : ""}</span>
-            <span className="muted">{p.handle}</span>
-          </Link>
-        ))}
-      </div>
-      <div id="newpage"><NewPage /></div>
+    <div className="ck-secondary">
+      <section className="ck-card">
+        <div className="ck-card-head">
+          <h2>Pages</h2>
+          <span className="ck-count">{pages.length}</span>
+        </div>
+        <div className="ck-list">
+          {pages.map((p) => (
+            <Link key={p.id} className="ck-linkrow" href={`/pages/${p.id}`}>
+              <span className="ck-row-title">{p.name}</span>
+              <span className="ck-sub">{p.config?.autopilot === false ? "paused" : p.handle || "running"}</span>
+            </Link>
+          ))}
+        </div>
+        <div className="ck-card-foot"><NewPage /></div>
+      </section>
 
-      <h2 style={{ marginTop: 32 }}>Recent stories</h2>
-      <NewStory pages={pages} />
-      <div className="list">
-        {stories.length === 0 && (
-          <div className="empty" style={{ border: 0, background: "none" }}>
-            <strong>No stories yet</strong>
-            The autopilot will fill today's slots, or start one by hand above.
-          </div>
-        )}
-        {stories.map((s) => (
-          <Link key={s.id} href={`/stories/${s.id}`}>
-            <span>{s.title}</span>
-            <span className="row">
-              <span className="muted">{[s.pages?.name, s.batch].filter(Boolean).join(" · ")}</span>
+      <section className="ck-card">
+        <div className="ck-card-head">
+          <h2>Recent stories</h2>
+        </div>
+        <div className="ck-card-foot"><NewStory pages={pages} /></div>
+        <div className="ck-list">
+          {stories.length === 0 && <div className="ck-empty">No stories yet — the autopilot will fill today's slots.</div>}
+          {stories.map((s) => (
+            <Link key={s.id} className="ck-linkrow" href={`/stories/${s.id}`}>
+              <span className="ck-row-title">{s.title}</span>
+              <span className="ck-sub">{[s.pages?.name, s.batch].filter(Boolean).join(" · ")}</span>
               <span className={`pill ${s.status}`}>{s.status}</span>
-            </span>
-          </Link>
-        ))}
-      </div>
-    </>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
 
