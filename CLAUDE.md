@@ -21,6 +21,7 @@ Goal: deploy this Next.js 14 app to Netlify with Supabase. Get one story renderi
 3. Set the env vars from `.env.example` in Netlify → Site configuration → Environment variables.
    - APP_URL = the production domain, e.g. https://carousel.netlify.app. Set it explicitly; the fallback to Netlify's own URL variables is a convenience, not a promise.
    - Leave CHROME_EXECUTABLE_PATH unset on Netlify.
+   - The two NEXT_PUBLIC_SUPABASE_* vars are inlined into the browser bundle at build time. If they're missing, everything works except direct uploads (logo, fonts, story images), which fail with "supabaseUrl is required" or the longer message in lib/client.js. Adding them fixes nothing until you redeploy.
 4. Netlify → Site configuration → Visitor access control: make sure the production domain isn't behind Netlify's password. Puppeteer loads /render/:id from it, and the app already has its own login (middleware.js basic auth).
 5. Deploy, then run the smoke test below.
 
