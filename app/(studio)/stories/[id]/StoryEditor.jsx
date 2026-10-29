@@ -27,17 +27,29 @@ const host = (u) => { try { return u ? new URL(u).hostname.replace(/^www\./, "")
 // "This photo" — one image slot: paste a link or upload a file.
 function ImageInput({ label, hint, value, folder, onChange, onBlocked }) {
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
   const onFile = async (e) => {
     const f = e.target.files?.[0];
+    // Reset first, so re-picking the same file after a failure still fires onChange
+    e.target.value = "";
     if (!f) return;
-    if (onBlocked) { e.target.value = ""; return onBlocked(BLOCKED.upload); }
+    if (onBlocked) return onBlocked(BLOCKED.upload);
     setBusy(true);
-    try { onChange(await upload(f, folder)); } finally { setBusy(false); }
+    setErr("");
+    try {
+      onChange(await upload(f, folder));
+    } catch (er) {
+      setErr(er.message);
+    } finally {
+      setBusy(false);
+    }
   };
   return (
     <Field label={label} hint={hint}>
       <input value={value || ""} placeholder="Paste an image link…" onChange={(e) => onChange(e.target.value)} />
       <input type="file" accept="image/*" onChange={onFile} disabled={busy} />
+      {busy && <span className="note">Uploading…</span>}
+      {err && <span className="err">{err}</span>}
     </Field>
   );
 }

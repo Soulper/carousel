@@ -15,13 +15,22 @@ const POSITIONS = ["top-left", "top-center", "top-right", "bottom-left", "bottom
 
 function FontPicker({ label, path, value, options, pageId, onChange, onBlocked }) {
   const custom = !!value.url;
+  const [fontState, setFontState] = useState({ busy: false, err: "" });
   const onFile = async (e) => {
     const f = e.target.files?.[0];
+    // Reset first, so re-picking the same file after a failure still fires onChange
+    e.target.value = "";
     if (!f) return;
-    if (onBlocked) { e.target.value = ""; return onBlocked(BLOCKED.upload); }
-    const url = await upload(f, `fonts/${pageId}`);
-    const family = f.name.replace(/\.(woff2?|ttf|otf)$/i, "").replace(/[-_]+/g, " ");
-    onChange(`${path}`, { ...value, family, url });
+    if (onBlocked) return onBlocked(BLOCKED.upload);
+    setFontState({ busy: true, err: "" });
+    try {
+      const url = await upload(f, `fonts/${pageId}`);
+      const family = f.name.replace(/\.(woff2?|ttf|otf)$/i, "").replace(/[-_]+/g, " ");
+      onChange(`${path}`, { ...value, family, url });
+      setFontState({ busy: false, err: "" });
+    } catch (er) {
+      setFontState({ busy: false, err: er.message });
+    }
   };
   return (
     <>
@@ -33,7 +42,9 @@ function FontPicker({ label, path, value, options, pageId, onChange, onBlocked }
         </select>
       </Field>
       <Field label="…or upload your own font file">
-        <input type="file" accept=".woff2,.woff,.ttf,.otf" onChange={onFile} />
+        <input type="file" accept=".woff2,.woff,.ttf,.otf" onChange={onFile} disabled={fontState.busy} />
+        {fontState.busy && <span className="note">Uploading…</span>}
+        {fontState.err && <span className="err">{fontState.err}</span>}
       </Field>
     </>
   );
@@ -46,6 +57,7 @@ export default function BrandEditor({ page, previewStoryId, previewSlides, previ
   const [state, setState] = useState({ saving: false, msg: "", err: "" });
   const [renders, setRenders] = useState([]);
   const [shot, setShot] = useState({ busy: "", err: "" });
+  const [logo, setLogo] = useState({ busy: false, err: "" });
   const router = useRouter();
   const set = (path, value) => setBrand((b) => setPath(b, path, value));
 
@@ -93,9 +105,18 @@ export default function BrandEditor({ page, previewStoryId, previewSlides, previ
 
   const onLogo = async (e) => {
     const f = e.target.files?.[0];
+    // Reset first, so re-picking the same file after a failure still fires onChange
+    e.target.value = "";
     if (!f) return;
-    if (blocked) { e.target.value = ""; return blocked(BLOCKED.upload); }
-    try { set("logo.src", await upload(f, `logos/${page.id}`)); } catch (er) { setState((s) => ({ ...s, err: er.message })); }
+    if (blocked) return blocked(BLOCKED.upload);
+    setLogo({ busy: true, err: "" });
+    try {
+      set("logo.src", await upload(f, `logos/${page.id}`));
+      setLogo({ busy: false, err: "" });
+    } catch (er) {
+      setLogo({ busy: false, err: er.message });
+      setState((s) => ({ ...s, err: er.message }));
+    }
   };
 
   // The logo either has a file or falls back to a coloured letter, which is
@@ -118,7 +139,9 @@ export default function BrandEditor({ page, previewStoryId, previewSlides, previ
 
         <Panel label="Logo">
           <Field label="Logo file">
-            <input type="file" accept="image/*" onChange={onLogo} />
+            <input type="file" accept="image/*" onChange={onLogo} disabled={logo.busy} />
+            {logo.busy && <span className="note">Uploading…</span>}
+            {logo.err && <span className="err">{logo.err}</span>}
           </Field>
           {hasLogo && (
             <div className="row">
