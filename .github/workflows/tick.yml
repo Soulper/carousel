@@ -39,7 +39,7 @@ jobs:
     # token comes back in the run log — update the IG_ACCESS_TOKEN env var with
     # it. (fb_exchange_token needs FB_APP_ID/FB_APP_SECRET set on Vercel.)
     runs-on: ubuntu-latest
-    if: github.event.schedule == '0 0 1 * *'
+    if: github.event.schedule == '0 3 1 * *'
     steps:
       - name: refresh
         run: |
