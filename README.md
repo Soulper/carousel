@@ -55,12 +55,26 @@ Rendering can also be triggered from code: `POST /api/render/:id` with `{ "varia
 
 `POST /api/source/:id` with `{ "overwrite": false }`. In the story editor, use **Find missing images** or **Re-source all**.
 
-1. **Find.** Claude is called with the web search and web fetch tools. It reads the story's `source_url` plus other coverage it finds, and lists the photo URLs that appear in those pages.
-2. **Filter.** The server downloads every candidate and measures it with Sharp. It drops anything under `MIN_IMAGE_SHORT_SIDE` (default 1000px) and collapses copies of the same photo at different sizes. If nothing passes the size bar, it keeps the best available and returns `lowRes: true`.
-3. **Assign.** Claude looks at the surviving photos. It picks one per slot (cover main, cover second, each body slide) with a focal point, plus up to 3 runners-up.
-4. **Save.** Winners and runners-up are re-hosted in storage. Any old cutout is cleared so the cutout worker regenerates it. The runners-up appear as one-click swaps in the story editor.
+1. **Find.** The article search runs each slide's photo angle, plus a **keyless web search** (DuckDuckGo — no API key) fills the gaps, so candidate pages are found whether or not the AI provider has search grounding. The story's `source_url` is always scraped, and bot-shielded pages are read through a reader proxy.
+2. **Filter.** Every candidate is downloaded and measured with Sharp. It drops anything under `MIN_IMAGE_SHORT_SIDE` (1000px), collapses copies of the same photo, and rejects **flat graphics** — icons, app-store badges and stock-photo disclaimer cards — by colour count and by how much of the frame one colour owns. Their alt text is checked too ("Available on the App Store", "Stock images … may be sourced from").
+3. **Floor.** If the article scrape is still thin, freely licensed photos are pulled from **Openverse** and **Wikimedia Commons** (also keyless), with real creator/licence credits.
+4. **Assign.** A vision model picks one photo per slot (cover main, cover second, each body slide) with a focal point. No vision model? The photos are placed in slide order instead — a real deck beats a failed pass.
+5. **Save.** Winners are re-hosted in storage. A failed re-source never leaves junk behind: any logo/app card already on the deck is evicted before the run gives up.
+6. **Dedupe.** No photo can appear twice: candidates identical to a photo already on the deck (fingerprint check) are dropped, and junk on the deck never blocks its own replacement.
 
-This needs `ANTHROPIC_API_KEY`. Each run uses two Claude calls plus up to 4 searches and 6 page fetches, so watch cost if you run it on every story.
+Works with any provider — Anthropic, Gemini, or a free one. Only Anthropic uses paid search/fetch; everyone else uses the keyless search.
+
+## AI providers
+
+Topic picking, copy writing and photo judging all go through one switch:
+
+| `AI_PROVIDER` | what it needs | cost |
+|---|---|---|
+| `anthropic` | `ANTHROPIC_API_KEY` | paid, does its own web search + fetch |
+| `gemini` | `GEMINI_API_KEY` | free tier (search grounding, vision), daily quota |
+| `free` / `groq` / `github` / `mistral` / `cerebras` / `openrouter` | the matching key (see `.env.example`) | free |
+
+Auto order is Anthropic → a free provider → Gemini. The free providers speak OpenAI's Chat Completions API, so one adapter covers them and any OpenAI-compatible endpoint works (set `FREE_BASE_URL` + `FREE_MODEL`). Vision-capable ones are listed in `.env.example`; when the chosen provider has no vision, only the photo-judging call is routed to Gemini if its key is present, otherwise sourcing assigns in order.
 
 ## Slide JSON
 
