@@ -263,7 +263,7 @@ export default function BrandEditor({ page, previewStoryId, previewSlides, previ
           {rest.map((s, i) => <Thumb key={i} slide={s} brand={brand} index={i + 1} scale={0.22} caption={`Slide ${i + 2}`} />)}
         </div>
 
-        <h2>Make the finished images</h2>
+        <h2>Make the images</h2>
         {!previewStoryId ? (
           <div className="empty">
             <strong>No stories on this page yet</strong>
@@ -281,7 +281,7 @@ export default function BrandEditor({ page, previewStoryId, previewSlides, previ
               Renders this page's most recent story so you can judge the brand on finished images.
             </p>
             <button className="btn primary" onClick={render} disabled={!!shot.busy}>
-              {shot.busy || (renders.length ? "Make them again" : "Make the images")}
+              {shot.busy || (renders.length ? "Make them again" : "Make images")}
             </button>
             {shot.err && <p className="err">{shot.err}</p>}
           </>

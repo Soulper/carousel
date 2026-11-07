@@ -42,10 +42,10 @@ function checks(story) {
 const TABS = [
   ["all", "Everything"],
   ["images", "Needs photos"],
-  ["render", "In factory"],
-  ["approval", "Ready to fly"],
+  ["render", "Making images"],
+  ["approval", "Ready to post"],
   ["posted", "Posted"],
-  ["failed", "Failed"],
+  ["failed", "Problems"],
 ];
 
 const ago = (iso) => {
@@ -130,7 +130,7 @@ function Card({ story, preview, onChange, labels = {} }) {
           {story.batch && <li className="muted">Batch {story.batch}</li>}
           {story.source_meta?.distinct != null && (
             <li className={story.source_meta.distinct >= (story.source_meta.slots || 0) - 1 ? "ok" : "todo"}>
-              {story.source_meta.distinct} of {story.source_meta.slots} slots got a distinct photo
+              {story.source_meta.distinct} of {story.source_meta.slots} slides got their own photo
               {(story.source_meta.dupes?.length || story.source_meta.reused?.length)
                 ? ` · ${story.source_meta.dupes?.length || 0} flagged + ${story.source_meta.reused?.length || 0} repeated`
                 : ""}
@@ -145,19 +145,19 @@ function Card({ story, preview, onChange, labels = {} }) {
           {/* Only relevant for the two cover styles that use a cutout — a
               permanent "not needed" row was noise on most cards. */}
           {c.cutout !== "not needed" && (
-            <li className={c.cutout === "pending" ? "todo" : "ok"}>Backgrounds removed: {c.cutout}</li>
+            <li className={c.cutout === "pending" ? "todo" : "ok"}>Background removed: {c.cutout === "pending" ? "waiting" : "done"}</li>
           )}
           <li className={c.latest ? "ok" : "todo"}>{c.latest ? `Images made ${ago(c.latest.created_at)}` : "Images not made yet"}</li>
           {story.job?.error && story.status !== "posted" && <li className="todo">Last step failed: {story.job.error}</li>}
           {story.scheduled_at && story.status !== "posted" && (
-            <li>Flies {new Date(story.scheduled_at).toISOString().slice(11, 16)} UTC</li>
+            <li>Posts at {new Date(story.scheduled_at).toISOString().slice(11, 16)} UTC</li>
           )}
           {story.status === "posted" && story.posted_at && <li>Posted {ago(story.posted_at)}</li>}
           {story.caption && <li className="muted">Caption written — open the story to read it</li>}
         </ul>
         <div className="qactions">
           {canRender ? (
-            <button className="btn primary" onClick={render} disabled={!!busy}>Make the images</button>
+            <button className="btn primary" onClick={render} disabled={!!busy}>Make images</button>
           ) : c.latest ? (
             <button className="btn primary" onClick={() => setStatus("approved")} disabled={!!busy}>Approve</button>
           ) : (
@@ -208,7 +208,7 @@ export default function Queue({ initial, preview = false, labels = {} }) {
           </button>
         ))}
       </div>
-      {shown.length === 0 && <p className="note">Nothing here. New stories from the pipeline land in this queue once they're created.</p>}
+      {shown.length === 0 && <p className="note">Nothing here right now. New carousels land in this queue as they're made.</p>}
       <div className="qgrid">
         {shown.map((s) => <Card key={s.id} story={s} preview={preview} onChange={onChange} labels={labels} />)}
       </div>

@@ -13,6 +13,19 @@ export async function GET(_req, { params }) {
   });
 }
 
+export async function DELETE(_req, { params }) {
+  return run(async () => {
+    // Render rows point at the story, so clear them first to keep the
+    // database happy whichever way the foreign keys are set up. Storage
+    // objects are left alone — small, and harmless until cleanup passes.
+    const storyId = params.id;
+    await db().from("renders").delete().eq("story_id", storyId);
+    const { error } = await db().from("stories").delete().eq("id", storyId);
+    if (error) throw error;
+    return ok({ deleted: storyId });
+  });
+}
+
 export async function PUT(req, { params }) {
   return run(async () => {
     const body = await req.json();

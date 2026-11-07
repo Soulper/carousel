@@ -16,8 +16,8 @@ export default function NewPage() {
     } catch (e) { setError(e.message); }
   };
   return (
-<div className="row" style={{ maxWidth: 640 }}>
-          <input placeholder="Page name" aria-label="Page name" value={name} onChange={(e) => setName(e.target.value)} style={{ flex: 1 }} />
+        <div className="row" style={{ maxWidth: 640 }}>
+          <input placeholder="Page name — e.g. Daily Space News" aria-label="Page name" value={name} onChange={(e) => setName(e.target.value)} style={{ flex: 1 }} />
           <input placeholder="@handle" aria-label="Handle" value={handle} onChange={(e) => setHandle(e.target.value)} style={{ width: 180 }} />
           <button className="btn primary" disabled={!name} onClick={create}>Add page</button>
           {error && <span className="err">{error}</span>}

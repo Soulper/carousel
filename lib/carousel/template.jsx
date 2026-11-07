@@ -77,8 +77,24 @@ const tieLast = (t) => (typeof t === "string"
   ? t.replace(/\s+(\S+)\s*$/, "\u00A0$1").replace(/^(\S{1,4})\s+/, "$1\u00A0")
   : t);
 
+// Relative luminance, 0 (black) → 1 (white). Unparsable colours count as
+// visible, so this guard can only widen what's shown, never hide it.
+const lum = (hex) => {
+  const h = String(hex || "").replace("#", "");
+  if (!/^[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(h)) return 1;
+  const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h, 16);
+  const f = (v) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * f((n >> 16) & 255) + 0.7152 * f((n >> 8) & 255) + 0.0722 * f(n & 255);
+};
+
 function Rich({ text, brand }) {
-  const c = brand.colors.highlight || brand.colors.accent;
+  // [[highlight]] words sit on the dark bar under body text. A brand colour
+  // close to the shade (black-on-black was possible) would paint invisible
+  // words, so it falls back to the default accent instead.
+  const chosen = brand.colors.highlight || brand.colors.accent;
+  const c = Math.abs(lum(chosen) - lum(brand.colors.shade)) < 0.15
+    ? defaultBrand.colors.accent
+    : chosen;
   return tieLast(text).split(/(\[\[.+?\]\])/g).map((p, i) =>
     p.startsWith("[[") ? (
       <span key={i} style={{ color: c, fontWeight: brand.fonts.body.highlightWeight }}>{p.slice(2, -2)}</span>

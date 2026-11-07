@@ -13,12 +13,12 @@ export const dynamic = "force-dynamic";
    does the work; this page just shows where every slot stands. */
 
 const LED = {
-  draft: ["queued", "warn"],
-  ready: ["in factory", "warn"],
-  rendered: ["ready to fly", "warn"],
+  draft: ["waiting", "warn"],
+  ready: ["being made", "warn"],
+  rendered: ["images ready", "warn"],
   posted: ["posted", "ok"],
-  rejected: ["failed", "bad"],
-  approved: ["ready to fly", "warn"],
+  rejected: ["stopped", "bad"],
+  approved: ["ready to post", "warn"],
 };
 
 const slotLabel = (d) => `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
@@ -69,10 +69,14 @@ export default async function Dashboard() {
   if (!preview && pages.length === 0) {
     return (
       <div className="wrap">
-        <h1>Cockpit</h1>
-        <div className="empty">
-          <strong>Add your first page</strong>
-          A page is one Instagram account: its look, its beats, and its posting schedule. The autopilot fills the slots you define here.
+        <h1>Dashboard</h1>
+        <div className="empty welcome">
+          <strong>Welcome — your first carousel is one click away</strong>
+          <ol className="welcome-steps">
+            <li><strong>Add a page</strong> — one Instagram account and its look. The form below does it.</li>
+            <li><strong>Click “Make me a carousel”</strong> — it picks a story, writes the words, finds the photos and makes the images.</li>
+            <li><strong>Look it over</strong> — edit anything you like, save the slides and post them.</li>
+          </ol>
           <div id="newpage" style={{ marginTop: 20 }}>
             <NewPage />
           </div>
@@ -96,9 +100,6 @@ export default async function Dashboard() {
     .filter((s) => ["rendered", "approved"].includes(s.status) && s.scheduled_at && new Date(s.scheduled_at) > new Date())
     .map((s) => s.scheduled_at)
     .sort()[0];
-  const lastStep = storyList
-    .map((s) => s.job?.started_at || s.posted_at)
-    .filter(Boolean).sort().pop();
 
   // Finished carousels waiting on a hand to post them (no publishing account
   // connected). Their latest render gives the slide files.
@@ -133,12 +134,12 @@ export default async function Dashboard() {
 
       <header className="ck-head">
         <div>
-          <h1>Cockpit</h1>
+          <h1>Dashboard</h1>
           <p className="ck-sub">
             <span className={`led ${autopilotOn ? "ok" : "warn"}`} />
             {autopilotOn ? "Autopilot on" : "Autopilot paused"}
             <span className="ck-dot">·</span>
-            {slotLabel(new Date())} UTC
+            {nextPost ? `next post ${slotLabel(new Date(nextPost))} UTC` : `${slotLabel(new Date())} UTC`}
           </p>
         </div>
         <CockpitActions pages={pages} preview={preview} />
@@ -146,11 +147,9 @@ export default async function Dashboard() {
 
       <div className="ck-gauges">
         <Gauge big={`${posted.length}/${quota}`} label="posted today" tone={posted.length ? "ok" : undefined} />
-        <Gauge big={String(factory.length)} label="in factory" />
-        <Gauge big={String(renderedWaiting.length)} label="ready to fly" />
-        <Gauge big={failed.length ? String(failed.length) : "—"} label="failures" tone={failed.length ? "bad" : undefined} />
-        <Gauge big={nextPost ? slotLabel(new Date(nextPost)) : "—"} label="next post" />
-        <Gauge big={lastStep ? ago(lastStep) : "idle"} label="last step" />
+        <Gauge big={String(factory.length)} label="being made" />
+        <Gauge big={String(renderedWaiting.length)} label="ready to post" />
+        <Gauge big={failed.length ? String(failed.length) : "—"} label="need attention" tone={failed.length ? "bad" : undefined} />
       </div>
 
       <Leds ai={!!(process.env.ANTHROPIC_API_KEY || process.env.GEMINI_API_KEY)} publishing={!!(process.env.IG_USER_ID && process.env.IG_ACCESS_TOKEN)} />
@@ -158,11 +157,11 @@ export default async function Dashboard() {
       <div className="ck-cols">
         <section className="ck-card ck-card-wide">
           <div className="ck-card-head">
-            <h2>Today's slots</h2>
-            <span className="ck-sub">08:00–22:00 UTC</span>
+            <h2>Today's posts</h2>
+            <span className="ck-sub">times shown in UTC</span>
           </div>
           <div className="ck-list">
-            {fullSlots.length === 0 && <div className="ck-empty">No slots configured for this page.</div>}
+            {fullSlots.length === 0 && <div className="ck-empty">No posting times configured for this page.</div>}
             {fullSlots.map((d) => {
               const s = bySlot.get(d.toISOString());
               const [text, tone] = s ? (LED[s.status] || [s.status, "warn"]) : ["open", null];
@@ -179,7 +178,7 @@ export default async function Dashboard() {
                     </>
                   ) : (
                     <>
-                      <span className="ck-row-title muted">{now ? "went unfilled" : "open slot"}</span>
+                      <span className="ck-row-title muted">{now ? "missed" : "open"}</span>
                       <span className="ck-batch" />
                       <span className="pill">—</span>
                     </>
@@ -225,7 +224,7 @@ export default async function Dashboard() {
                   );
                 })}
               </div>
-              <p className="ck-foot">Open a slide to save it, copy the caption, post from the phone.</p>
+              <p className="ck-foot">How to post: click a slide to open it full size and save it, copy the caption below, then post from your phone.</p>
             </section>
           )}
         </div>
@@ -254,10 +253,8 @@ function Leds({ ai, publishing }) {
   );
   return (
     <div className="row ck-leds">
-      {light(true, "Supabase")}
-      {light(ai, "AI (Claude/Gemini)", "Set ANTHROPIC_API_KEY or a free GEMINI_API_KEY")}
-      {light(publishing, "Auto-publish", "Connect a publishing account, or post finished carousels by hand below")}
-      <span className="hint">Scheduler: GitHub Actions every 15 min → see .github/workflows/tick.yml</span>
+      {light(ai, ai ? "AI writing on" : "AI writing off", "Set ANTHROPIC_API_KEY or a free GEMINI_API_KEY to let AI write words and find photos")}
+      {light(publishing, publishing ? "Auto-post on" : "Auto-post off — finished carousels are posted by hand below", "Connect a publishing account, or post finished carousels by hand below")}
     </div>
   );
 }
@@ -289,7 +286,7 @@ function Secondary({ pages, stories }) {
         </div>
         <div className="ck-card-foot"><NewStory pages={pages} /></div>
         <div className="ck-list">
-          {stories.length === 0 && <div className="ck-empty">No stories yet — the autopilot will fill today's slots.</div>}
+          {stories.length === 0 && <div className="ck-empty">No stories yet. Use “New story” above to make your first carousel.</div>}
           {stories.map((s) => (
             <Link key={s.id} className="ck-linkrow" href={`/stories/${s.id}`}>
               <span className="ck-row-title">{s.title}</span>

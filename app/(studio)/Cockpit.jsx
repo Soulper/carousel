@@ -52,8 +52,8 @@ export function CockpitActions({ pages = [], preview }) {
   const { busy, msg, err, tick, toggle } = useCockpit(preview);
   return (
     <div className="ck-controls">
-      <button className="btn primary" onClick={() => tick()} disabled={!!busy}>
-        {busy || "Run next step now"}
+      <button className="btn primary" title="Does one step of the work: write words, find photos, make images, or post." onClick={() => tick()} disabled={!!busy}>
+        {busy || "Run next step"}
       </button>
       {pages.map((p) => (
         <button key={p.id} className="btn" onClick={() => toggle(p)} disabled={!!busy}>
@@ -71,11 +71,11 @@ export function CockpitFailures({ failures = [], preview }) {
     return (
       <section className="ck-card">
         <div className="ck-card-head">
-          <h2>Failure board</h2>
+          <h2>Needs attention</h2>
         </div>
         <div className="ck-empty">
           <span className="led ok" />
-          Nothing broken. Every story is moving.
+          All clear — nothing needs you right now.
         </div>
       </section>
     );
@@ -83,7 +83,7 @@ export function CockpitFailures({ failures = [], preview }) {
   return (
     <section className="ck-card">
       <div className="ck-card-head">
-        <h2>Failure board</h2>
+        <h2>Needs attention</h2>
         <span className="ck-count bad">{failures.length}</span>
       </div>
       <div className="ck-list">

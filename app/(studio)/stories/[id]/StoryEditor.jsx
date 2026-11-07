@@ -1,8 +1,10 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api, runJob, upload } from "@/lib/client";
 import { useAutosave } from "@/lib/useAutosave";
 import { setPath } from "@/lib/carousel/setPath";
+import { isBlankText } from "@/lib/carousel/blank";
 import { HERO_VARIANTS, Thumb, BrandFonts } from "@/lib/carousel/template";
 import { BLOCKED } from "@/lib/preview";
 import { More, Field } from "../../Controls";
@@ -198,6 +200,8 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
   const [selected, setSelected] = useState(0);
   const [state, setState] = useState({ busy: "", msg: "", err: "" });
   const menuRef = useRef(null);
+  const rendersRef = useRef(null);
+  const rendersCount = useRef((initial.renders || []).length);
 
   /* A menu item that starts a long job closes the menu first, so the progress
      message isn't hidden behind the dropdown the user just clicked. */
@@ -230,8 +234,8 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
   };
   const act = async (label, fn) => {
     setState({ busy: label, msg: "", err: "" });
-    try { const msg = await fn(); setState({ busy: "", msg: msg || "Done", err: "" }); }
-    catch (e) { setState({ busy: "", msg: "", err: e.message }); }
+    try { const msg = await fn(); setState({ busy: "", msg: msg || "Done", err: "" }); return true; }
+    catch (e) { setState({ busy: "", msg: "", err: e.message }); return false; }
   };
   const source = (overwrite) => blocked ? blocked(BLOCKED.source) : act("Finding photos… this takes about a minute", async () => {
     await saveNow();
@@ -259,7 +263,7 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
     const r = await runJob(`/api/render/${story.id}`, story.id, { variants });
     setRenders((old) => [...r.renders, ...old]);
     set("status", "rendered");
-    return `Rendered ${r.renders.reduce((n, x) => n + x.files.length, 0)} slides`;
+    return `Rendered ${r.renders.reduce((n, x) => n + x.files.length, 0)} slides — they're under “Finished images” below, and the page scrolls to them.`;
   });
 
   const addSlide = () => {
@@ -282,16 +286,79 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
     return fresh;
   };
 
+  /* One-click generation. The story arrives from "Make me a carousel" with a
+     topic and photo queries but no words or pictures; this finishes it:
+     words → photos → images. Each step reports through act(), the strip above
+     ticks over as they land, and the URL param is stripped first so a refresh
+     never re-runs the whole (paid) chain. */
+  const router = useRouter();
+  const autoStarted = useRef(false);
+  const runAuto = async () => {
+    autoStarted.current = true;
+    router.replace(`/stories/${story.id}`, { scroll: false });
+    /* Photos first, words second: the writer grounds every line in the photo
+       captions and the source article's text, so words written before the
+       pictures exist come out vague. If sourcing fails (say the AI quota is
+       out), the error is shown and the words wait for photos — the render
+       step explains anything still missing. */
+    if (!(await source(false))) return;
+    await refresh();
+    if (!(await writeCopy(false))) return;
+    await refresh();
+    /* The sourcer leaves slots empty rather than repeat a photo, so a 6-of-7
+       result would stop here. One more pass changes that: with overwrite off it
+       only aims at the still-empty slots, and searching again usually finds the
+       extra picture. The render step's own guard explains it if not. */
+    try {
+      const fresh = await fetch(`/api/stories/${story.id}`).then((r) => r.json());
+      const missing = (fresh.slides || []).filter((s) => !s.bg?.src).length;
+      if (missing > 0) {
+        await source(false);
+        await refresh();
+      }
+    } catch { /* retry best-effort; render's guard still explains any gap */ }
+    await render([story.hero_variant]);
+  };
+  useEffect(() => {
+    if (autoStarted.current || preview) return;
+    if (!window.location.search.includes("auto=1")) return;
+    runAuto();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* When a new render lands, jump to it. "Finished images" sits below the
+     preview and filmstrip, so a finished button with no visible result reads
+     as "nothing happened". */
+  useEffect(() => {
+    if (renders.length > rendersCount.current && rendersRef.current) {
+      rendersRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    rendersCount.current = renders.length;
+  }, [renders.length]);
+
   const [cover, ...rest] = story.slides;
   const hasRender = renders.length > 0;
   const current = story.slides[selected] || cover;
   const photoCount = story.slides.filter((s) => s.bg?.src).length;
-  const hasWords = !!cover?.headline?.trim() && rest.every((s) => !!s.title?.trim());
-  const progress = [
-    `${photoCount} of ${story.slides.length} photos`,
-    hasWords ? "words written" : "no words yet",
-    hasRender ? "images made" : "not rendered",
-  ].join(" · ");
+  // Blank-slide placeholders count as unwritten, so the strip reads honestly
+  // on a fresh story.
+  const hasWords = !isBlankText(cover?.headline) && rest.every((s) => !isBlankText(s.title));
+  const allPhotos = story.slides.length > 0 && photoCount === story.slides.length;
+
+  /* Group render rows into runs so the section shows one block per press of
+     "Make images". Rows are newest-first; rows made within a minute of each
+     other belong to the same run (an "every style" render records one row per
+     variant). The newest run stays expanded, older ones collapse. */
+  const renderRuns = [];
+  for (const r of renders) {
+    const last = renderRuns[renderRuns.length - 1];
+    if (last && Math.abs(new Date(r.created_at) - new Date(last.at)) < 60000) last.items.push(r);
+    else renderRuns.push({ at: r.created_at, items: [r] });
+  }
+  const latestRun = renderRuns[0];
+  const olderRuns = renderRuns.slice(1);
+  const latestVariants = [...new Set((latestRun?.items || []).map((r) => r.variant))];
+  const latestSlides = (latestRun?.items || []).reduce((n, r) => n + r.files.length, 0);
 
   const savedText = state.busy || state.msg ||
     (saved === "saving" ? "Saving…" :
@@ -355,23 +422,41 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
             Compare all cover styles
           </label>
         </div>
-        <p className="meta">{progress}</p>
-
-        <div className="toolbar">
-          <button className="btn primary" onClick={() => render([story.hero_variant])} disabled={!!state.busy}>
-            {state.busy ? state.busy : "Make the images"}
-          </button>
-          <button className="btn" onClick={() => source(false)} disabled={!!state.busy}>Find photos</button>
-          <button className="btn" onClick={() => writeCopy(false)} disabled={!!state.busy}>Write words</button>
+        <div className="steps">
+          <div className={`step${hasWords ? " done" : ""}`}>
+            <span className="step-num">{hasWords ? "✓" : "1"}</span>
+            <span className="step-info">
+              <span className="step-name">Words</span>
+              <span className="step-state">{hasWords ? "written" : "not written yet"}</span>
+            </span>
+            <button className="btn" onClick={() => writeCopy(false)} disabled={!!state.busy}>Write words</button>
+          </div>
+          <div className={`step${allPhotos ? " done" : ""}`}>
+            <span className="step-num">{allPhotos ? "✓" : "2"}</span>
+            <span className="step-info">
+              <span className="step-name">Photos</span>
+              <span className="step-state">{photoCount} of {story.slides.length} slides</span>
+            </span>
+            <button className="btn" onClick={() => source(false)} disabled={!!state.busy}>Find photos</button>
+          </div>
+          <div className={`step${hasRender ? " done" : ""}`}>
+            <span className="step-num">{hasRender ? "✓" : "3"}</span>
+            <span className="step-info">
+              <span className="step-name">Images</span>
+              <span className="step-state">{hasRender ? "made" : "not made yet"}</span>
+            </span>
+            <button className="btn primary" onClick={() => render([story.hero_variant])} disabled={!!state.busy}>Make images</button>
+          </div>
           <details className="menu" ref={menuRef}>
             <summary className="btn ghost">More</summary>
             <div className="menu-body">
-              <button className="btn ghost" onClick={() => closeMenu(() => source(true))} disabled={!!state.busy}>Replace all photos</button>
               <button className="btn ghost" onClick={() => closeMenu(() => writeCopy(true))} disabled={!!state.busy}>Rewrite all words</button>
+              <button className="btn ghost" onClick={() => closeMenu(() => source(true))} disabled={!!state.busy}>Replace all photos</button>
               <button className="btn ghost" onClick={() => closeMenu(() => render(HERO_VARIANTS))} disabled={!!state.busy}>Try every cover style</button>
             </div>
           </details>
         </div>
+        {state.busy && <p className="note" style={{ margin: "8px 0 0" }}>{state.busy}</p>}
         {state.msg && <p className="note">{state.msg}</p>}
         {state.err && <p className="err">{state.err}</p>}
         {saved === "error" && !state.err && <p className="err">Couldn't save. Check the story still exists.</p>}
@@ -397,16 +482,52 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
           </>
         )}
 
-        <h2>Finished images</h2>
-        {!hasRender && <p className="note">Nothing made yet. When you're happy with the preview, use “Make the images”.</p>}
-        {renders.map((r) => (
-          <div key={r.id} style={{ marginBottom: 24 }}>
-            <p className="note">Cover style: {r.variant}, made {new Date(r.created_at).toLocaleString()}</p>
-            <div className="thumbs renders" style={{ marginBottom: 0 }}>
-              {r.files.map((f) => <a key={f.url} href={f.url} target="_blank" rel="noreferrer"><img src={f.url} alt={`Slide ${f.slide}`} /></a>)}
-            </div>
+        <h2 ref={rendersRef} style={{ scrollMarginTop: 20 }}>Finished images</h2>
+        <p className="note" style={{ margin: "-6px 0 16px" }}>
+          Click any image to open it full size, save it, and post it on Instagram.
+        </p>
+        {!hasRender && <p className="note">Nothing made yet. When you're happy with the preview, use “Make images” above.</p>}
+        {latestRun && (
+          <div style={{ marginBottom: 24 }}>
+            <p className="note">
+              {latestVariants.length > 1
+                ? `Latest — ${latestVariants.length} cover styles, made ${new Date(latestRun.at).toLocaleString()}`
+                : latestRun.items.length > 1
+                  ? `Latest — ${latestSlides} slides, made ${new Date(latestRun.at).toLocaleString()}`
+                  : `Latest — cover style: ${latestRun.items[0].variant}, made ${new Date(latestRun.at).toLocaleString()}`}
+            </p>
+            {latestRun.items.map((r) => (
+              <div key={r.id} style={{ marginBottom: latestRun.items.length > 1 && latestVariants.length > 1 ? 18 : 0 }}>
+                {latestVariants.length > 1 && <p className="note">Cover style: {r.variant}</p>}
+                <div className="thumbs renders" style={{ marginBottom: 0 }}>
+                  {r.files.map((f) => <a key={f.url} href={f.url} target="_blank" rel="noreferrer"><img src={f.url} alt={`Slide ${f.slide}`} /></a>)}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
+        {olderRuns.length > 0 && (
+          <details className="more">
+            <summary>
+              <span>Older renders</span>
+              <span className="summary-value">{olderRuns.length} earlier run{olderRuns.length === 1 ? "" : "s"}</span>
+            </summary>
+            <div className="morebody">
+              {olderRuns.map((run) => (
+                <div key={run.at} style={{ marginBottom: 20 }}>
+                  {run.items.map((r) => (
+                    <div key={r.id} style={{ marginBottom: 16 }}>
+                      <p className="note">Cover style: {r.variant}, made {new Date(r.created_at).toLocaleString()}</p>
+                      <div className="thumbs renders" style={{ marginBottom: 0 }}>
+                        {r.files.map((f) => <a key={f.url} href={f.url} target="_blank" rel="noreferrer"><img src={f.url} alt={`Slide ${f.slide}`} /></a>)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
       </main>
 
       <aside className="inspector">
