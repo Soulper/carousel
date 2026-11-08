@@ -305,18 +305,20 @@ export default function StoryEditor({ story: initial, pages, preview = false }) 
     await refresh();
     if (!(await writeCopy(false))) return;
     await refresh();
-    /* The sourcer leaves slots empty rather than repeat a photo, so a 6-of-7
-       result would stop here. One more pass changes that: with overwrite off it
-       only aims at the still-empty slots, and searching again usually finds the
-       extra picture. The render step's own guard explains it if not. */
-    try {
-      const fresh = await fetch(`/api/stories/${story.id}`).then((r) => r.json());
-      const missing = (fresh.slides || []).filter((s) => !s.bg?.src).length;
-      if (missing > 0) {
+    /* The sourcer leaves slots empty rather than repeat a photo, so a 5-of-6
+       result would stop here. Passes 2 and 3 aim only at the still-empty slots
+       and search fresh angles, which is how the last photo on a niche subject
+       keeps turning up — from a different outlet each pass. The render step's
+       own guard explains it if the web is genuinely out of options. */
+    for (let pass = 0; pass < 2; pass++) {
+      try {
+        const fresh = await fetch(`/api/stories/${story.id}`).then((r) => r.json());
+        const missing = (fresh.slides || []).filter((s) => !s.bg?.src).length;
+        if (!missing) break;
         await source(false);
         await refresh();
-      }
-    } catch { /* retry best-effort; render's guard still explains any gap */ }
+      } catch { /* retry best-effort; render's guard still explains any gap */ }
+    }
     await render([story.hero_variant]);
   };
   useEffect(() => {
