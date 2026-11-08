@@ -7,3 +7,4 @@
     "app/api/cron/tick/route.js": { "maxDuration": 300 }
   }
 }
+
