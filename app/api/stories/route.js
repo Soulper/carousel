@@ -42,7 +42,9 @@ export async function POST(req) {
       try {
         row = await generateStory(page, body.details || "");
       } catch (e) {
-        if (![409, 502].includes(e?.status)) throw e;
+        /* 422 covers the model-flake "no usable story" reply as well as too
+           few photo moments; both are worth one automatic re-roll. */
+        if (![409, 422, 502].includes(e?.status)) throw e;
         console.warn(`story create: first pick failed (${String(e.message).split("\n")[0]}) — retrying the pick once`);
         row = await generateStory(page, body.details || "");
       }

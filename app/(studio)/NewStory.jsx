@@ -61,7 +61,7 @@ export default function NewStory({ pages }) {
       </button>
       <p className="hint" style={{ margin: 0 }}>
         Picks a real, current story{details.trim() ? " on your subject" : ""}, writes the words, finds
-        the photos and makes the images — about 3 minutes, a few cents in AI calls. You can edit
+        the photos and makes the images — about 3 minutes on the free AI providers. You can edit
         everything afterwards.
       </p>
       {error && <p className="err" style={{ marginTop: 0 }}>{error}</p>}
