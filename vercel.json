@@ -4,6 +4,7 @@
     "app/api/render/[id]/route.js": { "maxDuration": 300 },
     "app/api/source/[id]/route.js": { "maxDuration": 300 },
     "app/api/copy/[id]/route.js": { "maxDuration": 120 },
+    "app/api/stories/route.js": { "maxDuration": 300 },
     "app/api/cron/tick/route.js": { "maxDuration": 300 }
   }
 }

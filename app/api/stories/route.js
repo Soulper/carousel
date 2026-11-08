@@ -34,7 +34,18 @@ export async function POST(req) {
         .eq("id", body.page_id)
         .single();
       if (!page) return fail("Page not found", 404);
-      const row = await generateStory(page, body.details || "");
+      /* The pick is model-driven and confirmable-article checks are strict.
+         Most "try again" failures are a single bad roll or a throttled search,
+         not the subject itself — so one automatic second attempt stands in for
+         the retry the user used to have to click themselves. */
+      let row;
+      try {
+        row = await generateStory(page, body.details || "");
+      } catch (e) {
+        if (![409, 502].includes(e?.status)) throw e;
+        console.warn(`story create: first pick failed (${String(e.message).split("\n")[0]}) — retrying the pick once`);
+        row = await generateStory(page, body.details || "");
+      }
       return ok(row, 201);
     }
     const { page_id, title, slides = [], caption, hero_variant = "depth", source_url, status = "draft" } = body;
