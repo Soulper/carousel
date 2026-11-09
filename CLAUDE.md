@@ -69,4 +69,13 @@ Fix anything those surface. Keep the API shapes stable, because the pipeline dep
 puppeteer-core 25.11.0 targets Chrome 153 and must match @sparticuz/chromium 153.x. If you bump one, bump the other to the matching major.
 
 ## Function durations
-`/api/render/[id]` and `/api/source/[id]` export `maxDuration = 300`. That's the Vercel knob and Netlify ignores it — the background functions get 15 minutes regardless. What matters on Netlify is that nothing long runs in an ordinary function: `/api/copy/:id` still runs inline and takes about half a minute, which fits, but keep an eye on it.
+`/api/render/[id]` and `/api/source/[id]` export `maxDuration = 300`. That's the Vercel knob and Netlify ignores it — the background functions get 15 minutes regardless. What matters on Netlify is that nothing long runs in an ordinary function: `/api/copy/:id` still runs inline and takes about half a minute, which fits, but keep an eye on it. `/api/stories` (create) also runs `maxDuration = 300` in vercel.json.
+
+## Story creation on free providers (grounding flow)
+`lib/topic.js generateStory()`:
+- For a user brief on a free provider, the **keyless search runs BEFORE the model speaks** (pre-confirmed article). The model only frames the real article (title/slides); if its reply is malformed, slide queries fall back to headline-cut strings.
+- Search formulations MUST be short: whole sentences and 5+-word keyword soup return ZERO items from Bing News RSS / Google News RSS. The working ladder is 2–3 keywords, with " news" appended to the leading variants. Every variant fires at once (Promise.all) and every hit is probed for readability at once — serial probes blew the 280 s function ceiling.
+- `webSearchDetailed` MERGES all search backends per query (it used to stop at the first non-empty one, which was often GDELT serving 1–2 low-grade evergreen pages and hiding the real news in Bing/Google). Google News links resolve to their publisher URLs in parallel (`__resolve__` sentinel in `fromRss`).
+- Candidates are ranked by `readableScored`: readable (>400 chars body) + subject overlap. Abstract description words ("winning", "unexpected", "streak", "league"…) count HALF, concrete identity words count full, and subject words found in the candidate's HEADLINE count double. Without the weighting, a "winning streak" basketball article outranked the actual NFL rookie story.
+- Free providers must not be told to search in prompts — Groq's gpt-oss owns an internal browser tool and tries to call it ("Tool choice is none, but model called a tool", a 400). That error is also auto-retried in `lib/ai.js`, which retries empty replies ×3.
+- `app/api/debug/search` is a small auth-gated diagnostics route that shows exactly what prod's search + readability gates see (prod behavior differs from a laptop: GDELT mostly 429s from Vercel IPs, DDG 403s).
