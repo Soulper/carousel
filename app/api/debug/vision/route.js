@@ -83,6 +83,33 @@ export async function GET() {
         visionCall = { ok: false, error: String(e.message || e).slice(0, 400) };
       }
     }
-    return ok({ config: conf2, call, models, mistral, visionCall });
+    /* Raw control probe: the 429 detail body, and a text-only chat call, and
+       every vision-capable model that could be tried instead. */
+    const rawProbe = async (model, vision) => {
+      const body = {
+        model,
+        messages: vision
+          ? [{ role: "user", content: [
+              { type: "text", text: 'What colour? JSON: {"colour":"..."}' },
+              { type: "image_url", image_url: { url: "data:image/png;base64," + png } },
+            ] }]
+          : [{ role: "user", content: 'Reply with the single word: ok' }],
+        max_tokens: 60,
+      };
+      try {
+        const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
+          method: "POST",
+          headers: { "content-type": "application/json", authorization: `Bearer ${process.env.MISTRAL_API_KEY || ""}` },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(20000),
+        });
+        const data = await res.json().catch(() => ({}));
+        return { status: res.status, model, body: JSON.stringify(data).slice(0, 300) };
+      } catch (e) { return { model, error: String(e.message).slice(0, 120) }; }
+    };
+    const probes = [];
+    for (const m of ["mistral-small-latest", "mistral-medium-3.5", "ministral-3b-latest"]) probes.push(await rawProbe(m, true));
+    probes.push(await rawProbe("ministral-3b-latest", false));
+    return ok({ config: conf2, call, models, visionCall, probes });
   });
 }
