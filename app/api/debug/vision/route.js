@@ -38,6 +38,17 @@ export async function GET() {
     } catch (e) {
       call = { ok: false, error: String(e.message || e).slice(0, 400) };
     }
-    return ok({ config: conf, call });
+    // Also enumerate the provider's live model list, so stale model IDs
+    // (scout 404) are visible without account access.
+    let models = null;
+    try {
+      const res = await fetch(`https://api.groq.com/openai/v1/models`, {
+        headers: { authorization: `Bearer ${process.env.GROQ_API_KEY || ""}` },
+        signal: AbortSignal.timeout(12000),
+      });
+      const data = await res.json();
+      models = (data.data || []).map((m) => m.id).filter((id) => id) || null;
+    } catch (e) { models = `ERR ${String(e.message).slice(0, 120)}`; }
+    return ok({ config: conf, call, models });
   });
 }
