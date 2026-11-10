@@ -7,13 +7,24 @@ export const dynamic = "force-dynamic";
    in-function generated test image and reports exactly which provider/model
    served it and what error (if any) came back — because photo judging has
    silently "failed" on this deployment and the code path checks out. */
-export async function GET() {
+export async function GET(req) {
   return run(async () => {
-    // 1×4 red PNG, base64 — a real image the model can look at.
-    const png = Buffer.from(
+    // Optional ?img=<url>: a REAL photo instead of the red pixel, so the probe
+    // answers the only question that matters — does the lane describe photos.
+    let png = Buffer.from(
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
       "base64",
     ).toString("base64");
+    let mime = "image/png";
+    const imgUrl = new URL(req.url).searchParams.get("img");
+    if (imgUrl) {
+      try {
+        const res = await fetch(imgUrl, { signal: AbortSignal.timeout(15000) });
+        const buf = Buffer.from(await res.arrayBuffer());
+        mime = res.headers.get("content-type") || "image/jpeg";
+        png = buf.toString("base64");
+      } catch (e) { return ok({ imgError: String(e.message).slice(0, 120) }); }
+    }
     const conf = {
       provider: provider(),
       free: freeProvider() ? { name: freeProvider().name, model: freeProvider().model, vision: freeProvider().vision } : null,
@@ -108,8 +119,22 @@ export async function GET() {
       } catch (e) { return { model, error: String(e.message).slice(0, 120) }; }
     };
     const probes = [];
-    for (const m of ["mistral-small-latest", "mistral-medium-3.5", "ministral-3b-latest"]) probes.push(await rawProbe(m, true));
-    probes.push(await rawProbe("ministral-3b-latest", false));
+    for (const m of ["mistral-small-latest", "ministral-8b-latest", "ministral-3b-latest"]) {
+      const body = { model: m, messages: [{ role: "user", content: [
+        { type: "text", text: "Describe what you see in one short JSON: {\"seen\":true,\"describe\":\"...\"}. If you cannot see any image, reply {\"seen\":false}." },
+        { type: "image_url", image_url: { url: `data:${mime};base64,${png}` } },
+      ] }], max_tokens: 160 };
+      try {
+        const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
+          method: "POST",
+          headers: { "content-type": "application/json", authorization: `Bearer ${process.env.MISTRAL_API_KEY || ""}` },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(30000),
+        });
+        const data = await res.json().catch(() => ({}));
+        probes.push({ model: m, status: res.status, out: (data.choices?.[0]?.message?.content || JSON.stringify(data)).slice(0, 260) });
+      } catch (e) { probes.push({ model: m, error: String(e.message).slice(0, 120) }); }
+    }
     return ok({ config: conf2, call, models, visionCall, probes });
   });
 }
