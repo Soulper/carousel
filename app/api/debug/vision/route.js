@@ -21,7 +21,7 @@ export async function GET(req) {
       try {
         const res = await fetch(imgUrl, { signal: AbortSignal.timeout(15000) });
         const buf = Buffer.from(await res.arrayBuffer());
-        mime = res.headers.get("content-type") || "image/jpeg";
+        mime = "image/jpeg"; // the pipeline itself stamps jpeg everywhere (resized previews)
         png = buf.toString("base64");
       } catch (e) { return ok({ imgError: String(e.message).slice(0, 120) }); }
     }
